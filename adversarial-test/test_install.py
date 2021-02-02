@@ -36,24 +36,43 @@ def predict(image):
     return label_lookup[label_index]
 
 
+def normalize_grad(grad):
+    grad_np = grad.numpy()
+    centered = (grad_np - np.min(grad_np)) / (np.max(grad_np) - np.min(grad_np))
+    return centered
+
+
 def get_adversarial_image(image):
     image_tensor = load_image(image)
-    x = Variable(image_tensor, requires_grad=True)
-    output = model.forward(x)
 
-    target_y = torch.tensor([479])
+    for i in range(0, 10):
+        x = Variable(image_tensor, requires_grad=True)
+        output = model.forward(x)
 
-    loss = CrossEntropyLoss(output, target_y)
-    loss.backward()
+        y = Variable(
+            torch.LongTensor(np.array([output.data.numpy().argmax()])),
+            requires_grad=False,
+        )
+        # target_y = torch.tensor([479])
 
-    adversarial_tensor = x.data + 0.2 * torch.sign(x.grad.data)
-    print('grad mean: ', x.grad.data.numpy().mean())
+        loss = CrossEntropyLoss(output, y)
+        loss.backward()
 
-    adversarial_result = int(model.forward(adversarial_tensor).argmax().numpy())
+        image_tensor = x.data + 0.05 * normalize_grad(x.grad.data)
+
+    normalized_grad = normalize_grad(x.grad.data)
+    print(
+        'grad mean: ',
+        np.mean(normalized_grad),
+        np.min(normalized_grad),
+        np.max(normalized_grad),
+    )
+
+    adversarial_result = int(model.forward(image_tensor).argmax().numpy())
     print('adversarial label: ', label_lookup[adversarial_result])
 
     to_image = transforms.ToPILImage()
-    adversarial_image = to_image(inv_normalize(torch.squeeze(adversarial_tensor)))
+    adversarial_image = to_image(inv_normalize(torch.squeeze(image_tensor)))
 
     return adversarial_image
 
