@@ -12,7 +12,7 @@ std = np.array([0.229, 0.224, 0.225]).reshape((3, 1, 1))
 model = models.vgg16(pretrained=True).eval()
 CrossEntropyLoss = torch.nn.CrossEntropyLoss()
 
-loader = transforms.Compose([transforms.Resize(224, 224), transforms.ToTensor()])
+loader = transforms.Compose([transforms.ToTensor()])
 
 mean = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32)
 std = torch.tensor([0.229, 0.224, 0.225], dtype=torch.float32)
@@ -26,9 +26,8 @@ inv_normalize = transforms.Normalize(
 
 
 def load_image(image):
-    image_converted = image.convert('RGB')
-    image_loaded = loader(image_converted).float()
-    image_normalized = normalize(image_loaded)
+    image_tensor = loader(image).float()
+    image_normalized = normalize(image_tensor)
 
     return image_normalized.unsqueeze(0)
 
@@ -68,12 +67,27 @@ def test_image_normalization(image):
     return after_image
 
 
+def test_image_loader(image):
+    to_tensor = transforms.ToTensor()
+    image_tensor = to_tensor(image)
+    image.save('./garbage.png')
+
+    image_read = Image.open('./garbage.png')
+    image_read_tensor = to_tensor(image_read)
+
+    print_stats_summary('image', image_tensor.numpy())
+    print_stats_summary('after_image', image_read_tensor.numpy())
+    print_stats_summary('diff', image_tensor.numpy() - image_read_tensor.numpy())
+
+
 def get_adversarial_image(image):
-    image_tensor = load_image(image)
+    image_tensor = loader(image).float()
+    orig_image_tensor = loader(image).float()
 
     for i in range(0, 10):
         x = Variable(image_tensor, requires_grad=True)
-        output = model.forward(x)
+        x_normalized = normalize(x).unsqueeze(0)
+        output = model.forward(x_normalized)
 
         y = Variable(torch.LongTensor(np.array([919])), requires_grad=False,)
 
@@ -82,26 +96,36 @@ def get_adversarial_image(image):
 
         # ascend the loss function to get as far away from classifying this image
         # as a street sign as possible
-        image_tensor = x.data + 0.05 * normalize_grad(x.grad.data)
+        image_tensor = x.data + 0.005 * torch.sign(x.grad.data)
 
-    normalized_grad = normalize_grad(x.grad.data)
-    print(
-        'grad mean: ',
-        np.mean(normalized_grad),
-        np.min(normalized_grad),
-        np.max(normalized_grad),
+        # need to normalize to keep the pixel values between 0 and 1
+        # could also clip probably
+        image_tensor = (image_tensor - image_tensor.min()) / (
+            image_tensor.max() - image_tensor.min()
+        )
+
+    adversarial_result = int(
+        model.forward(normalize(image_tensor).unsqueeze(0)).argmax().numpy()
     )
-
-    adversarial_result = int(model.forward(image_tensor).argmax().numpy())
     print('adversarial label: ', label_lookup[adversarial_result])
 
     to_image = transforms.ToPILImage()
-    adversarial_image = to_image(inv_normalize(torch.squeeze(image_tensor)))
+    adversarial_image = to_image(image_tensor)
+    adversarial_image.save('./adversarial.png')
+
+    adversarial_image2 = Image.open('./adversarial.png')
+    adversarial_tensor2 = loader(adversarial_image2).float()
+
+    # something still might be messed up with these, diff should be zero i think still
+    # print_stats_summary('image_tensor', image_tensor.numpy())
+    # print_stats_summary('adversarial_tensor', adversarial_tensor2.numpy())
+    # print_stats_summary('diff', (image_tensor - adversarial_tensor2).numpy())
 
     return adversarial_image
 
 
 image = Image.open('/Users/adamspindler/Downloads/stop.png')
+# image = Image.open('./adversarial.png')
 if image is None:
     print('no image')
     exit(-1)
@@ -109,4 +133,3 @@ if image is None:
 print('prediction: ', predict(image))
 
 adversarial_image = get_adversarial_image(image)
-adversarial_image.save('./adversarial.png')
