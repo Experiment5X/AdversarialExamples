@@ -13,7 +13,12 @@ model = models.vgg16(pretrained=True).eval()
 CrossEntropyLoss = torch.nn.CrossEntropyLoss()
 
 loader = transforms.Compose([transforms.Resize(224, 224), transforms.ToTensor()])
-normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+mean = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32)
+std = torch.tensor([0.229, 0.224, 0.225], dtype=torch.float32)
+normalize = transforms.Normalize(mean.tolist(), std.tolist())
+denormalize = transforms.Normalize((-mean / std).tolist(), (1.0 / std).tolist())
+
 inv_normalize = transforms.Normalize(
     mean=[-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
     std=[1 / 0.229, 1 / 0.224, 1 / 0.225],
@@ -42,6 +47,27 @@ def normalize_grad(grad):
     return centered
 
 
+def print_stats_summary(name, arr):
+    print(f'{name} - mean: {arr.mean()} min: {arr.min()} max: {arr.max()}')
+
+
+# there is a slight difference between the original image and the image after it has
+#  been normalized and de-normalized
+def test_image_normalization(image):
+    image_np = np.array(image)
+    image_tensor = load_image(image)
+
+    to_image = transforms.ToPILImage()
+    after_image = to_image(denormalize(torch.squeeze(image_tensor)))
+    after_image_np = np.array(after_image)
+
+    print_stats_summary('image', image_np)
+    print_stats_summary('after_image', after_image_np)
+    print_stats_summary('diff', image_np - after_image_np)
+
+    return after_image
+
+
 def get_adversarial_image(image):
     image_tensor = load_image(image)
 
@@ -49,15 +75,13 @@ def get_adversarial_image(image):
         x = Variable(image_tensor, requires_grad=True)
         output = model.forward(x)
 
-        y = Variable(
-            torch.LongTensor(np.array([output.data.numpy().argmax()])),
-            requires_grad=False,
-        )
-        # target_y = torch.tensor([479])
+        y = Variable(torch.LongTensor(np.array([919])), requires_grad=False,)
 
         loss = CrossEntropyLoss(output, y)
         loss.backward()
 
+        # ascend the loss function to get as far away from classifying this image
+        # as a street sign as possible
         image_tensor = x.data + 0.05 * normalize_grad(x.grad.data)
 
     normalized_grad = normalize_grad(x.grad.data)
