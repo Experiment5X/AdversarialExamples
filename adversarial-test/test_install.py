@@ -89,14 +89,14 @@ def get_adversarial_image(image):
         x_normalized = normalize(x).unsqueeze(0)
         output = model.forward(x_normalized)
 
-        y = Variable(torch.LongTensor(np.array([919])), requires_grad=False,)
+        y = Variable(torch.LongTensor(np.array([605])), requires_grad=False,)
 
         loss = CrossEntropyLoss(output, y)
         loss.backward()
 
         # ascend the loss function to get as far away from classifying this image
         # as a street sign as possible
-        image_tensor = x.data + 0.005 * torch.sign(x.grad.data)
+        image_tensor = x.data - 0.005 * torch.sign(x.grad.data)
 
         # need to normalize to keep the pixel values between 0 and 1
         # could also clip probably
@@ -104,10 +104,11 @@ def get_adversarial_image(image):
             image_tensor.max() - image_tensor.min()
         )
 
-    adversarial_result = int(
-        model.forward(normalize(image_tensor).unsqueeze(0)).argmax().numpy()
-    )
-    print('adversarial label: ', label_lookup[adversarial_result])
+        adversarial_result = int(
+            model.forward(normalize(image_tensor).unsqueeze(0)).argmax().numpy()
+        )
+
+        print(f'[{i}] - {loss:.5f} - {label_lookup[adversarial_result]}')
 
     to_image = transforms.ToPILImage()
     adversarial_image = to_image(image_tensor)
