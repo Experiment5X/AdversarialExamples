@@ -7,8 +7,6 @@ import torchvision.transforms as transforms
 
 from labels import label_lookup
 
-mean = np.array([0.485, 0.456, 0.406]).reshape((3, 1, 1))
-std = np.array([0.229, 0.224, 0.225]).reshape((3, 1, 1))
 model = models.vgg16(pretrained=True).eval()
 CrossEntropyLoss = torch.nn.CrossEntropyLoss()
 
@@ -17,12 +15,7 @@ loader = transforms.Compose([transforms.ToTensor()])
 mean = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32)
 std = torch.tensor([0.229, 0.224, 0.225], dtype=torch.float32)
 normalize = transforms.Normalize(mean.tolist(), std.tolist())
-denormalize = transforms.Normalize((-mean / std).tolist(), (1.0 / std).tolist())
-
-inv_normalize = transforms.Normalize(
-    mean=[-0.485 / 0.229, -0.456 / 0.224, -0.406 / 0.225],
-    std=[1 / 0.229, 1 / 0.224, 1 / 0.225],
-)
+inv_normalize = transforms.Normalize((-mean / std).tolist(), (1.0 / std).tolist())
 
 
 def load_image(image):
@@ -57,7 +50,7 @@ def test_image_normalization(image):
     image_tensor = load_image(image)
 
     to_image = transforms.ToPILImage()
-    after_image = to_image(denormalize(torch.squeeze(image_tensor)))
+    after_image = to_image(inv_normalize(torch.squeeze(image_tensor)))
     after_image_np = np.array(after_image)
 
     print_stats_summary('image', image_np)
@@ -85,17 +78,18 @@ def get_adversarial_image(image):
     orig_image_tensor = loader(image).float()
 
     for i in range(0, 10):
-        x = Variable(image_tensor, requires_grad=True)
+        x = image_tensor
+        x.requires_grad = True
+
         x_normalized = normalize(x).unsqueeze(0)
         output = model.forward(x_normalized)
 
-        y = Variable(torch.LongTensor(np.array([605])), requires_grad=False,)
+        y = torch.LongTensor([605])
 
-        loss = CrossEntropyLoss(output, y)
+        loss = CrossEntropyLoss(output, y) + torch.norm(x - orig_image_tensor)
         loss.backward()
 
-        # ascend the loss function to get as far away from classifying this image
-        # as a street sign as possible
+        # descend the loss function to get close to the target class
         image_tensor = x.data - 0.005 * torch.sign(x.grad.data)
 
         # need to normalize to keep the pixel values between 0 and 1
@@ -125,7 +119,7 @@ def get_adversarial_image(image):
     return adversarial_image
 
 
-image = Image.open('/Users/adamspindler/Downloads/stop.png')
+image = Image.open('/Users/adamspindler/Downloads/dog.png')
 # image = Image.open('./adversarial.png')
 if image is None:
     print('no image')
