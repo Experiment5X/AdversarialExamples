@@ -1,42 +1,11 @@
-from PIL import Image
-import numpy as np
+import sys
 import torch
-from torch.autograd import Variable
-import torchvision.models as models
 import torchvision.transforms as transforms
+import numpy as np
+from PIL import Image
 
 from labels import label_lookup
-
-model = models.vgg16(pretrained=True).eval()
-CrossEntropyLoss = torch.nn.CrossEntropyLoss()
-
-loader = transforms.Compose([transforms.ToTensor()])
-
-mean = torch.tensor([0.485, 0.456, 0.406], dtype=torch.float32)
-std = torch.tensor([0.229, 0.224, 0.225], dtype=torch.float32)
-normalize = transforms.Normalize(mean.tolist(), std.tolist())
-inv_normalize = transforms.Normalize((-mean / std).tolist(), (1.0 / std).tolist())
-
-
-def load_image(image):
-    image_tensor = loader(image).float()
-    image_normalized = normalize(image_tensor)
-
-    return image_normalized.unsqueeze(0)
-
-
-def predict(image):
-    image_tensor = load_image(image)
-    prediction_tensor = model.forward(image_tensor)
-    label_index = int(prediction_tensor.argmax().numpy())
-
-    return label_lookup[label_index]
-
-
-def normalize_grad(grad):
-    grad_np = grad.numpy()
-    centered = (grad_np - np.min(grad_np)) / (np.max(grad_np) - np.min(grad_np))
-    return centered
+from common import CrossEntropyLoss, loader, inv_normalize, model, normalize, predict
 
 
 def print_stats_summary(name, arr):
@@ -73,10 +42,11 @@ def test_image_loader(image):
     print_stats_summary('diff', image_tensor.numpy() - image_read_tensor.numpy())
 
 
-def get_adversarial_image(image):
+def get_adversarial_image(image, target_class=605):
     image_tensor = loader(image).float()
     orig_image_tensor = loader(image).float()
 
+    print('Starting iterations...')
     for i in range(0, 10):
         x = image_tensor
         x.requires_grad = True
@@ -84,9 +54,9 @@ def get_adversarial_image(image):
         x_normalized = normalize(x).unsqueeze(0)
         output = model.forward(x_normalized)
 
-        y = torch.LongTensor([605])
+        y = torch.LongTensor([target_class])
 
-        loss = CrossEntropyLoss(output, y) + torch.norm(x - orig_image_tensor)
+        loss = CrossEntropyLoss(output, y) + torch.norm(x - orig_image_tensor, 2)
         loss.backward()
 
         # descend the loss function to get close to the target class
@@ -104,27 +74,32 @@ def get_adversarial_image(image):
 
         print(f'[{i}] - {loss:.5f} - {label_lookup[adversarial_result]}')
 
+        if adversarial_result == target_class:
+            print('Stopping early, created adversarial image successfully')
+            break
+
     to_image = transforms.ToPILImage()
     adversarial_image = to_image(image_tensor)
     adversarial_image.save('./adversarial.png')
+    print('Wrote adversarial image to ./adversarial.png')
 
     adversarial_image2 = Image.open('./adversarial.png')
     adversarial_tensor2 = loader(adversarial_image2).float()
 
-    # something still might be messed up with these, diff should be zero i think still
-    # print_stats_summary('image_tensor', image_tensor.numpy())
-    # print_stats_summary('adversarial_tensor', adversarial_tensor2.numpy())
-    # print_stats_summary('diff', (image_tensor - adversarial_tensor2).numpy())
-
     return adversarial_image
 
 
-image = Image.open('/Users/adamspindler/Downloads/dog.png')
-# image = Image.open('./adversarial.png')
+if sys.argv[1] is not None:
+    image_path = sys.argv[1]
+else:
+    image_path = '/Users/adamspindler/Downloads/g.png'
+
+image = Image.open(image_path)
 if image is None:
-    print('no image')
+    print('Could not open image')
     exit(-1)
 
-print('prediction: ', predict(image))
+image_class = predict(image)
+print(f'Loaded image, class is "{image_class}"')
 
 adversarial_image = get_adversarial_image(image)
