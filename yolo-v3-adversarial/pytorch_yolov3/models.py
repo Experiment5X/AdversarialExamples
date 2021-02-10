@@ -277,6 +277,8 @@ class Darknet(nn.Module):
         self.header_info = np.array([0, 0, 0, self.seen, 0], dtype=np.int32)
 
     def forward(self, x, targets=None):
+        orig_x = x
+
         img_dim = x.shape[2]
         loss = 0
         layer_outputs, yolo_outputs = [], []
@@ -284,7 +286,13 @@ class Darknet(nn.Module):
             zip(self.module_defs, self.module_list)
         ):
             if module_def["type"] in ["convolutional", "upsample", "maxpool"]:
-                x = module(x)
+                y_pred = module(x)
+                # fake_loss = torch.sum(y_pred)
+                # fake_loss.backward()
+
+                # print('intermediate grad: ', x.grad)
+
+                x = y_pred
             elif module_def["type"] == "route":
                 x = torch.cat(
                     [
@@ -301,7 +309,20 @@ class Darknet(nn.Module):
                 loss += layer_loss
                 yolo_outputs.append(x)
             layer_outputs.append(x)
-        yolo_outputs = to_cpu(torch.cat(yolo_outputs, 1))
+
+        # print('yolo_outputs - requires_grad: ', yolo_outputs[0].requires_grad)
+        # print(
+        #     'yolo_outputs tensor - requires_grad: ',
+        #     torch.Tensor(yolo_outputs[0]).requires_grad,
+        # )
+        # print(
+        #     'yolo_outputs tensor cpu - requires_grad: ',
+        #     to_cpu(torch.Tensor(yolo_outputs[0])).requires_grad,
+        # )
+
+        yolo_outputs = torch.cat(yolo_outputs, 1)
+        # print('un-cpu yolo_outputs - requires_grad: ', yolo_outputs[0].requires_grad)
+
         return yolo_outputs if targets is None else (loss, yolo_outputs)
 
     def load_darknet_weights(self, weights_path):
