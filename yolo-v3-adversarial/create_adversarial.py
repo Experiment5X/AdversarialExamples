@@ -1,7 +1,8 @@
 import cv2
+import sys
 import torch
 from pytorch_yolov3.models import Darknet
-from pytorch_yolov3.utils.datasets import ImageFolder
+from pytorch_yolov3.utils.datasets import ImageFile
 from pytorch_yolov3.utils.transforms import DEFAULT_TRANSFORMS, Resize
 from pytorch_yolov3.utils.utils import load_classes, non_max_suppression
 
@@ -28,10 +29,14 @@ model = Darknet('pytorch_yolov3/config/yolov3.cfg', img_size=416).to(device)
 model.load_darknet_weights('pytorch_yolov3/weights/yolov3.weights')
 model.train()
 
+if len(sys.argv) > 1:
+    image_path = sys.argv[1]
+else:
+    image_path = 'pytorch_yolov3/data/test/field.jpg'
+
 dataloader = DataLoader(
-    ImageFolder(
-        'pytorch_yolov3/data/test',
-        transform=transforms.Compose([DEFAULT_TRANSFORMS, Resize(416)]),
+    ImageFile(
+        image_path, transform=transforms.Compose([DEFAULT_TRANSFORMS, Resize(416)]),
     ),
     batch_size=1,
     shuffle=False,
@@ -47,7 +52,7 @@ Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTen
 for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
     original_image_tensor = input_imgs.type(Tensor)
     image_tensor = input_imgs.type(Tensor)
-    for i in range(0, 1):
+    for i in range(0, 10):
         # Configure input
         x = image_tensor
         x.requires_grad = True

@@ -38,6 +38,29 @@ def resize(image, size):
     return image
 
 
+class ImageFile(Dataset):
+    def __init__(self, file_path, transform=None):
+        self.files = [file_path]
+        self.transform = transform
+
+    def __getitem__(self, index):
+
+        img_path = self.files[index % len(self.files)]
+        img = np.array(Image.open(img_path).convert('RGB'), dtype=np.uint8)
+
+        # Label Placeholder
+        boxes = np.zeros((1, 5))
+
+        # Apply transforms
+        if self.transform:
+            img, _ = self.transform((img, boxes))
+
+        return img_path, img
+
+    def __len__(self):
+        return len(self.files)
+
+
 class ImageFolder(Dataset):
     def __init__(self, folder_path, transform=None):
         self.files = sorted(glob.glob("%s/*.*" % folder_path))
@@ -46,9 +69,7 @@ class ImageFolder(Dataset):
     def __getitem__(self, index):
 
         img_path = self.files[index % len(self.files)]
-        img = np.array(
-            Image.open(img_path).convert('RGB'), 
-            dtype=np.uint8)
+        img = np.array(Image.open(img_path).convert('RGB'), dtype=np.uint8)
 
         # Label Placeholder
         boxes = np.zeros((1, 5))
@@ -69,7 +90,9 @@ class ListDataset(Dataset):
             self.img_files = file.readlines()
 
         self.label_files = [
-            path.replace("images", "labels").replace(".png", ".txt").replace(".jpg", ".txt")
+            path.replace("images", "labels")
+            .replace(".png", ".txt")
+            .replace(".jpg", ".txt")
             for path in self.img_files
         ]
 
@@ -82,7 +105,7 @@ class ListDataset(Dataset):
         self.transform = transform
 
     def __getitem__(self, index):
-        
+
         # ---------
         #  Image
         # ---------
@@ -128,11 +151,11 @@ class ListDataset(Dataset):
         batch = [data for data in batch if data is not None]
 
         paths, imgs, bb_targets = list(zip(*batch))
-        
+
         # Selects new image size every tenth batch
         if self.multiscale and self.batch_count % 10 == 0:
             self.img_size = random.choice(range(self.min_size, self.max_size + 1, 32))
-        
+
         # Resize images to input shape
         imgs = torch.stack([resize(img, self.img_size) for img in imgs])
 
@@ -140,7 +163,7 @@ class ListDataset(Dataset):
         for i, boxes in enumerate(bb_targets):
             boxes[:, 0] = i
         bb_targets = torch.cat(bb_targets, 0)
-        
+
         return paths, imgs, bb_targets
 
     def __len__(self):
