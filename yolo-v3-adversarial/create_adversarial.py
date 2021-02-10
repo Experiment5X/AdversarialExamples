@@ -1,6 +1,7 @@
 import cv2
 import sys
 import torch
+from setup_model import setup_model
 from pytorch_yolov3.models import Darknet
 from pytorch_yolov3.utils.datasets import ImageFile
 from pytorch_yolov3.utils.transforms import DEFAULT_TRANSFORMS, Resize
@@ -22,32 +23,7 @@ output:
     5-85: classification scores
 """
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Set up model
-model = Darknet('pytorch_yolov3/config/yolov3.cfg', img_size=416).to(device)
-model.load_darknet_weights('pytorch_yolov3/weights/yolov3.weights')
-model.train()
-
-if len(sys.argv) > 1:
-    image_path = sys.argv[1]
-else:
-    image_path = 'pytorch_yolov3/data/test/field.jpg'
-
-dataloader = DataLoader(
-    ImageFile(
-        image_path, transform=transforms.Compose([DEFAULT_TRANSFORMS, Resize(416)]),
-    ),
-    batch_size=1,
-    shuffle=False,
-    num_workers=0,
-)
-
-classes = load_classes(
-    'pytorch_yolov3/data/coco.names'
-)  # Extracts class labels from file
-
-Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
+(model, dataloader, classes, Tensor) = setup_model(False)
 
 for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
     original_image_tensor = input_imgs.type(Tensor)
@@ -60,15 +36,35 @@ for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
         # Get detections
         detections = model.forward(x)
 
+        # Get the confidences in the bboxes existing
         bbox_confidence_mask = torch.zeros(detections.shape)
         bbox_confidence_mask[:, :, 4] = 1
         bbox_confidences = detections * bbox_confidence_mask
 
+        # loss function wants all the bbox confidences to be 0
         adversarial_loss = torch.sum(bbox_confidences)
         adversarial_loss.backward()
 
-        print(f'adversarial loss = {adversarial_loss:.5f}')
+        # interpret the output matrix into the names of the objects detected
+        detections = non_max_suppression(detections, 0.8, 0.4)
+        if detections[0] is not None:
+            detected_objects = [
+                classes[int(detection[6])] for detection in detections[0]
+            ]
+        else:
+            detected_objects = ['Nothing!']
 
+        detected_objects_str = ', '.join(detected_objects)
+        print(
+            f'Adversarial loss = {adversarial_loss:.5f} - detected objects: {detected_objects_str}'
+        )
+
+        # stop early if no objects detected any more
+        if detected_objects[0] == 'Nothing!':
+            print('Successfully created adversarial image, stopping early')
+            break
+
+        # update the image in the adversarial direction
         image_tensor = image_tensor.data - 0.005 * torch.sign(x.grad.data)
 
         # need to normalize to keep the pixel values between 0 and 1
@@ -77,19 +73,8 @@ for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
             image_tensor.max() - image_tensor.min()
         )
 
-        detections = non_max_suppression(detections, 0.8, 0.4)
-
-        print('Detected: ')
-        if detections[0] is not None:
-            for detection in detections[0]:
-                print(classes[int(detection[6])])
-            print()
-        else:
-            print('Nothing!')
-            break
 
 to_pil_image = transforms.ToPILImage()
 to_pil_image(image_tensor[0, ...]).save('./adversarial.png')
-to_pil_image(original_image_tensor[0, ...]).save('./original.png')
 
 print('Wrote adversarial image')
