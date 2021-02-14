@@ -23,6 +23,8 @@ output:
     5-85: classification scores
 """
 
+class_to_hide = 12
+
 (model, dataloader, classes, Tensor) = setup_model(False)
 
 for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
@@ -41,8 +43,15 @@ for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
         bbox_confidence_mask[:, :, 4] = 1
         bbox_confidences = detections * bbox_confidence_mask
 
+        # Get the confidences in stop signs existing
+        stop_sign_confidence_mask = torch.zeros(detections.shape)
+        stop_sign_confidence_mask[:, :, 4 + class_to_hide] = 1
+        stop_sign_confidences = detections * stop_sign_confidence_mask
+
         # loss function wants all the bbox confidences to be 0
-        adversarial_loss = torch.sum(bbox_confidences)
+        adversarial_loss = torch.sum(bbox_confidences) + torch.sum(
+            stop_sign_confidences
+        )
         adversarial_loss.backward()
 
         # interpret the output matrix into the names of the objects detected
@@ -56,16 +65,20 @@ for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
 
         detected_objects_str = ', '.join(detected_objects)
         print(
-            f'Adversarial loss = {adversarial_loss:.5f} - detected objects: {detected_objects_str}'
+            f'[{i}] Adversarial loss = {adversarial_loss:.5f} - detected objects: {detected_objects_str}'
         )
 
         # stop early if no objects detected any more
-        if detected_objects[0] == 'Nothing!':
-            print('Successfully created adversarial image, stopping early')
-            break
+        # if detected_objects[0] == 'Nothing!':
+        # print('Successfully created adversarial image, stopping early')
+        # break
 
-        # update the image in the adversarial direction
-        image_tensor = image_tensor.data - 0.005 * torch.sign(x.grad.data)
+        # update the image in the adversarial direction with random regularization
+        image_tensor = (
+            image_tensor.data
+            - 0.005 * torch.sign(x.grad.data)
+            + 0.0015 * torch.rand(x.grad.shape)
+        )
 
         # need to normalize to keep the pixel values between 0 and 1
         # could also clip probably
