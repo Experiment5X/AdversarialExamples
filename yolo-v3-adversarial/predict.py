@@ -9,11 +9,11 @@ from setup_model import setup_model
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
-(model, dataloader, classes, Tensor) = setup_model(True)
 
-for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
-    image_tensor = input_imgs.type(Tensor)
+(model, dataloader, classes, Tensor) = setup_model()
 
+
+def predict_image_tensor(image_tensor):
     # Get detections
     detections = model.forward(image_tensor)
     detections = non_max_suppression(detections, 0.8, 0.4)
@@ -22,10 +22,17 @@ for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
     if detections[0] is not None:
         for detection in detections[0]:
             bbox_confidence_score = detection[4]
-            class_confidence_score = detection[4]
+            class_confidence_score = detection[5]
             detected_class = classes[int(detection[6])]
-            print(f'{detected_class} {class_confidence_score:.5f} - Bbox score: {bbox_confidence_score:.5f}')
+            print(
+                f'{detected_class} {class_confidence_score:.5f} - Bbox score: {bbox_confidence_score:.5f}'
+            )
         print()
     else:
         print('Nothing!')
-        break
+
+
+for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
+    image_tensor = input_imgs.type(Tensor)
+
+    predict_image_tensor(image_tensor)

@@ -9,17 +9,14 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
 
-def setup_model(is_eval):
+def setup_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Set up model
     model = Darknet('pytorch_yolov3/config/yolov3.cfg', img_size=416).to(device)
     model.load_darknet_weights('pytorch_yolov3/weights/yolov3.weights')
 
-    if is_eval:
-        model.eval()
-    else:
-        model.train()
+    model.eval()
 
     if len(sys.argv) > 1:
         image_path = sys.argv[1]
