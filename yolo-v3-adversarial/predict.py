@@ -21,7 +21,10 @@ for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
     print('Detected: ')
     if detections[0] is not None:
         for detection in detections[0]:
-            print(classes[int(detection[6])])
+            bbox_confidence_score = detection[4]
+            class_confidence_score = detection[4]
+            detected_class = classes[int(detection[6])]
+            print(f'{detected_class} {class_confidence_score:.5f} - Bbox score: {bbox_confidence_score:.5f}')
         print()
     else:
         print('Nothing!')
