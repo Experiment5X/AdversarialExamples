@@ -31,7 +31,7 @@ output:
 """
 
 to_pil_image = transforms.ToPILImage()
-transforms = transforms.Compose([DEFAULT_TRANSFORMS, Resize(416)])
+to_tensor = transforms.ToTensor()
 
 
 def is_image_file(file_name):
@@ -61,43 +61,44 @@ for file_path in file_paths:
     (model, dataloader, classes, Tensor) = setup_model(file_path)
 
     print(f'Working on {file_path}')
-    for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
-        original_image_tensor = input_imgs.type(Tensor)
-        image_tensor = input_imgs.type(Tensor)
 
-        for i in range(0, 10):
-            # Configure input
-            x = image_tensor
-            x.requires_grad = True
+    image = Image.open(file_path)
+    image_tensor = to_tensor(image).unsqueeze(0)
+    original_image_tensor = to_tensor(image).unsqueeze(0)
 
-            # Get detections
-            detections = model.forward(x)
+    for i in range(0, 15):
+        # Configure input
+        x = image_tensor
+        x.requires_grad = True
 
-            # loss function wants all the bbox confidences to be 0
-            raw_adversarial_loss = get_adversarial_loss(detections)
-            adversarial_loss = raw_adversarial_loss + torch.norm(
-                image_tensor - original_image_tensor, 2
-            )
-            adversarial_loss.backward()
+        # Get detections
+        detections = model.forward(x)
 
-            # interpret the output matrix into the names of the objects detected
-            detected_objects_str = get_prediction_names(detections, classes)
+        # loss function wants all the bbox confidences to be 0
+        raw_adversarial_loss = get_adversarial_loss(detections)
+        adversarial_loss = raw_adversarial_loss + torch.norm(
+            image_tensor - original_image_tensor, 2
+        )
+        adversarial_loss.backward()
 
-            print(
-                f'[{i}] Adversarial loss = {adversarial_loss:.5f} - detected objects: {detected_objects_str}'
-            )
+        # interpret the output matrix into the names of the objects detected
+        detected_objects_str = get_prediction_names(detections, classes)
 
-            # update the image in the adversarial direction with random regularization
-            image_tensor = (
-                image_tensor.data
-                - 0.007 * torch.sign(x.grad.data)
-                + 0.0005 * torch.rand(x.grad.shape)
-            )
+        print(
+            f'[{i}] Adversarial loss = {adversarial_loss:.5f} - detected objects: {detected_objects_str}'
+        )
 
-            # need to normalize to keep the pixel values between 0 and 1
-            image_tensor = (image_tensor - image_tensor.min()) / (
-                image_tensor.max() - image_tensor.min()
-            )
+        # update the image in the adversarial direction with random regularization
+        image_tensor = (
+            image_tensor.data
+            - 0.005 * torch.sign(x.grad.data)
+            + 0.0003 * torch.rand(x.grad.shape)
+        )
+
+        # need to normalize to keep the pixel values between 0 and 1
+        image_tensor = (image_tensor - image_tensor.min()) / (
+            image_tensor.max() - image_tensor.min()
+        )
 
     original_file_name = os.path.basename(file_path)
     base_file_name = Path(original_file_name).stem
@@ -111,8 +112,7 @@ for file_path in file_paths:
     print(f'Wrote adversarial image to: {adversarial_file_name}')
     print('Re-running detection on PNG image...')
 
-    boxes = np.zeros((1, 5))
-    img = np.array(Image.open(adversarial_file_name).convert('RGB'), dtype=np.uint8)
+    image = Image.open(adversarial_file_name).convert('RGB')
+    image_tensor_reloaded = to_tensor(image).unsqueeze(0)
 
-    image_tensor_reloaded, _ = transforms((img, boxes))
-    predict_image_tensor(image_tensor_reloaded.unsqueeze(0))
+    predict_image_tensor(image_tensor_reloaded)

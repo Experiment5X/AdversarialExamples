@@ -1,5 +1,6 @@
 import sys
 import torch
+from PIL import Image
 from pytorch_yolov3.models import Darknet
 from pytorch_yolov3.utils.datasets import ImageFile
 from pytorch_yolov3.utils.transforms import DEFAULT_TRANSFORMS, Resize
@@ -10,7 +11,10 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
 
-(model, dataloader, classes, Tensor) = setup_model(sys.argv[1])
+to_tensor = transforms.ToTensor()
+
+image_path = sys.argv[1]
+(model, _, classes, Tensor) = setup_model(image_path)
 
 
 def predict_image_tensor(image_tensor):
@@ -33,7 +37,7 @@ def predict_image_tensor(image_tensor):
 
 
 if __name__ == '__main__':
-    for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
-        image_tensor = input_imgs.type(Tensor)
+    image = Image.open(image_path).convert('RGB')
+    image_tensor = to_tensor(image).unsqueeze(0)
 
-        predict_image_tensor(image_tensor)
+    predict_image_tensor(image_tensor)

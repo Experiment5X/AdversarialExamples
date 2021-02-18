@@ -1,5 +1,6 @@
 import sys
 import torch
+import numpy as np
 from PIL import Image
 from torchvision.transforms import ToTensor, ToPILImage
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
