@@ -58,11 +58,11 @@ else:
     print(f'Found {len(file_paths)} files to make adversarial')
 
 for file_path in file_paths:
-    (model, dataloader, classes, Tensor) = setup_model(file_path)
+    (model, classes) = setup_model()
 
     print(f'Working on {file_path}')
 
-    image = Image.open(file_path)
+    image = Image.open(file_path).convert('RGB').resize((416, 416))
     image_tensor = to_tensor(image).unsqueeze(0)
     original_image_tensor = to_tensor(image).unsqueeze(0)
 

@@ -36,7 +36,7 @@ def get_prediction_names(detections, classes):
     return detected_objects_str
 
 
-def setup_model(image_path):
+def setup_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Set up model
@@ -45,20 +45,11 @@ def setup_model(image_path):
 
     model.eval()
 
-    dataloader = DataLoader(
-        ImageFile(
-            image_path, transform=transforms.Compose([DEFAULT_TRANSFORMS, Resize(416)]),
-        ),
-        batch_size=1,
-        shuffle=False,
-        num_workers=0,
-    )
-
     classes = load_classes(
         'pytorch_yolov3/data/coco.names'
     )  # Extracts class labels from file
 
     Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
 
-    return (model, dataloader, classes, Tensor)
+    return (model, classes)
 

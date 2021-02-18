@@ -22,7 +22,7 @@ def create_adversarial(image_path):
     rcnn_model = fasterrcnn_resnet50_fpn(pretrained=True, pretrained_backbone=True)
     rcnn_model.eval()
 
-    yolo_model, _1, yolo_classes, _2 = setup_model(image_path)
+    yolo_model, yolo_classes = setup_model(image_path)
 
     for iteration in range(0, 25):
         image_tensor.requires_grad = True

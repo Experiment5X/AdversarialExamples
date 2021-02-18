@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 to_tensor = transforms.ToTensor()
 
 image_path = sys.argv[1]
-(model, _, classes, Tensor) = setup_model(image_path)
+(model, classes) = setup_model()
 
 
 def predict_image_tensor(image_tensor):
