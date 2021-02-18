@@ -4,7 +4,7 @@ from pytorch_yolov3.models import Darknet
 from pytorch_yolov3.utils.datasets import ImageFile
 from pytorch_yolov3.utils.transforms import DEFAULT_TRANSFORMS, Resize
 from pytorch_yolov3.utils.utils import load_classes, non_max_suppression
-from setup_model import setup_model
+from setup_yolo_model import setup_model
 
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader

@@ -17,6 +17,8 @@ def create_adversarial(image_path):
     model = fasterrcnn_resnet50_fpn(pretrained=True, pretrained_backbone=True)
     model.eval()
 
+    print(image_tensor)
+
     for iteration in range(0, 5):
         image_tensor.requires_grad = True
 

@@ -6,7 +6,7 @@ import pickle
 import numpy as np
 from PIL import Image
 from pathlib import Path
-from setup_model import setup_model
+from setup_yolo_model import setup_model
 from pytorch_yolov3.models import Darknet
 from pytorch_yolov3.utils.datasets import ImageFile
 from pytorch_yolov3.utils.transforms import DEFAULT_TRANSFORMS, Resize
@@ -15,7 +15,7 @@ from pytorch_yolov3.utils.utils import load_classes, non_max_suppression
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
-from predict import predict_image_tensor
+from predict_yolo import predict_image_tensor
 
 """
 output:
@@ -66,6 +66,8 @@ for file_path in file_paths:
     for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
         original_image_tensor = input_imgs.type(Tensor)
         image_tensor = input_imgs.type(Tensor)
+
+        print(image_tensor)
         for i in range(0, 10):
             # Configure input
             x = image_tensor
