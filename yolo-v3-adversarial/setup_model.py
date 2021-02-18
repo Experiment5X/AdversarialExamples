@@ -1,4 +1,3 @@
-import sys
 import torch
 from pytorch_yolov3.models import Darknet
 from pytorch_yolov3.utils.datasets import ImageFile
@@ -9,7 +8,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
 
-def setup_model():
+def setup_model(image_path):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Set up model
@@ -17,11 +16,6 @@ def setup_model():
     model.load_darknet_weights('pytorch_yolov3/weights/yolov3.weights')
 
     model.eval()
-
-    if len(sys.argv) > 1:
-        image_path = sys.argv[1]
-    else:
-        image_path = 'pytorch_yolov3/data/test/field.jpg'
 
     dataloader = DataLoader(
         ImageFile(

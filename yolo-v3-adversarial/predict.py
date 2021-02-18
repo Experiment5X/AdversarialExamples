@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
 
-(model, dataloader, classes, Tensor) = setup_model()
+(model, dataloader, classes, Tensor) = setup_model(sys.argv[1])
 
 
 def predict_image_tensor(image_tensor):
@@ -32,7 +32,8 @@ def predict_image_tensor(image_tensor):
         print('Nothing!')
 
 
-for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
-    image_tensor = input_imgs.type(Tensor)
+if __name__ == '__main__':
+    for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
+        image_tensor = input_imgs.type(Tensor)
 
-    predict_image_tensor(image_tensor)
+        predict_image_tensor(image_tensor)

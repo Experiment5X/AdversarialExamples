@@ -1,9 +1,11 @@
+import os
 import cv2
 import sys
 import torch
 import pickle
 import numpy as np
 from PIL import Image
+from pathlib import Path
 from setup_model import setup_model
 from pytorch_yolov3.models import Darknet
 from pytorch_yolov3.utils.datasets import ImageFile
@@ -28,78 +30,109 @@ output:
     5-85: classification scores
 """
 
+to_pil_image = transforms.ToPILImage()
+transforms = transforms.Compose([DEFAULT_TRANSFORMS, Resize(416)])
+
+
+def is_image_file(file_name):
+    f = file_name.lower()
+    return f.endswith('.png') or f.endswith('.jpg') or f.endswith('.jpeg')
+
+
 class_to_hide = 12
 
-(model, dataloader, classes, Tensor) = setup_model()
+if len(sys.argv) < 2:
+    print('Must specify an image file or directory full of image files')
+    exit(-1)
 
-for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
-    original_image_tensor = input_imgs.type(Tensor)
-    image_tensor = input_imgs.type(Tensor)
-    for i in range(0, 10):
-        # Configure input
-        x = image_tensor
-        x.requires_grad = True
+specified_path = sys.argv[1]
+output_directory = sys.argv[2] if len(sys.argv) > 2 else './'
 
-        # Get detections
-        detections = model.forward(x)
+if os.path.isfile(specified_path):
+    file_paths = [specified_path]
+else:
+    file_paths = [
+        os.path.join(specified_path, f)
+        for f in os.listdir(specified_path)
+        if os.path.isfile(os.path.join(specified_path, f)) and is_image_file(f)
+    ]
 
-        # Get the confidences in the bboxes existing
-        bbox_confidence_mask = torch.zeros(detections.shape)
-        bbox_confidence_mask[:, :, 4] = 1
-        bbox_confidences = detections * bbox_confidence_mask
+    print(f'Found {len(file_paths)} files to make adversarial')
 
-        # Get the confidences in stop signs existing
-        stop_sign_confidence_mask = torch.zeros(detections.shape)
-        stop_sign_confidence_mask[:, :, 4 + class_to_hide] = 1
-        stop_sign_confidences = detections * stop_sign_confidence_mask
+for file_path in file_paths:
+    (model, dataloader, classes, Tensor) = setup_model(file_path)
 
-        # loss function wants all the bbox confidences to be 0
-        adversarial_loss = (
-            torch.sum(bbox_confidences)
-            + torch.sum(stop_sign_confidences)
-            + torch.norm(image_tensor - original_image_tensor, 2)
-        )
-        adversarial_loss.backward()
+    print(f'Working on {file_path}')
+    for batch_i, (img_paths, input_imgs) in enumerate(dataloader):
+        original_image_tensor = input_imgs.type(Tensor)
+        image_tensor = input_imgs.type(Tensor)
+        for i in range(0, 10):
+            # Configure input
+            x = image_tensor
+            x.requires_grad = True
 
-        # interpret the output matrix into the names of the objects detected
-        detections = non_max_suppression(detections, 0.8, 0.4)
-        if detections[0] is not None:
-            detected_objects = [
-                f'{classes[int(detection[6])]} {detection[5]:.5f}'
-                for detection in detections[0]
-            ]
-        else:
-            detected_objects = ['Nothing!']
+            # Get detections
+            detections = model.forward(x)
 
-        detected_objects_str = ', '.join(detected_objects)
-        print(
-            f'[{i}] Adversarial loss = {adversarial_loss:.5f} - detected objects: {detected_objects_str}'
-        )
+            # Get the confidences in the bboxes existing
+            bbox_confidence_mask = torch.zeros(detections.shape)
+            bbox_confidence_mask[:, :, 4] = 1
+            bbox_confidences = detections * bbox_confidence_mask
 
-        # update the image in the adversarial direction with random regularization
-        image_tensor = (
-            image_tensor.data
-            - 0.007 * torch.sign(x.grad.data)
-            + 0.003 * torch.rand(x.grad.shape)
-        )
+            # Get the confidences in stop signs existing
+            stop_sign_confidence_mask = torch.zeros(detections.shape)
+            stop_sign_confidence_mask[:, :, 4 + class_to_hide] = 1
+            stop_sign_confidences = detections * stop_sign_confidence_mask
 
-        # need to normalize to keep the pixel values between 0 and 1
-        image_tensor = (image_tensor - image_tensor.min()) / (
-            image_tensor.max() - image_tensor.min()
-        )
+            # loss function wants all the bbox confidences to be 0
+            adversarial_loss = (
+                torch.sum(bbox_confidences)
+                + torch.sum(stop_sign_confidences)
+                + torch.norm(image_tensor - original_image_tensor, 2)
+            )
+            adversarial_loss.backward()
 
+            # interpret the output matrix into the names of the objects detected
+            detections = non_max_suppression(detections, 0.8, 0.4)
+            if detections[0] is not None:
+                detected_objects = [
+                    f'{classes[int(detection[6])]} {detection[5]:.5f}'
+                    for detection in detections[0]
+                ]
+            else:
+                detected_objects = ['Nothing!']
 
-to_pil_image = transforms.ToPILImage()
-pil_image = to_pil_image(image_tensor[0, ...])
-pil_image.save('./adversarial.png')
+            detected_objects_str = ', '.join(detected_objects)
+            print(
+                f'[{i}] Adversarial loss = {adversarial_loss:.5f} - detected objects: {detected_objects_str}'
+            )
 
-boxes = np.zeros((1, 5))
-img = np.array(Image.open('./adversarial.png').convert('RGB'), dtype=np.uint8)
+            # update the image in the adversarial direction with random regularization
+            image_tensor = (
+                image_tensor.data
+                - 0.007 * torch.sign(x.grad.data)
+                + 0.0005 * torch.rand(x.grad.shape)
+            )
 
-transforms = transforms.Compose([DEFAULT_TRANSFORMS, Resize(416)])
-image_tensor_reloaded, _ = transforms((img, boxes))
+            # need to normalize to keep the pixel values between 0 and 1
+            image_tensor = (image_tensor - image_tensor.min()) / (
+                image_tensor.max() - image_tensor.min()
+            )
 
-print('Wrote adversarial image')
+    original_file_name = os.path.basename(file_path)
+    base_file_name = Path(original_file_name).stem
+    adversarial_file_name = os.path.join(
+        output_directory, f'adversarial_{base_file_name}.png'
+    )
 
-print('Re-running detection on PNG image...')
-predict_image_tensor(image_tensor_reloaded.unsqueeze(0))
+    pil_image = to_pil_image(image_tensor[0, ...])
+    pil_image.save(adversarial_file_name)
+
+    print(f'Wrote adversarial image to: {adversarial_file_name}')
+    print('Re-running detection on PNG image...')
+
+    boxes = np.zeros((1, 5))
+    img = np.array(Image.open(adversarial_file_name).convert('RGB'), dtype=np.uint8)
+
+    image_tensor_reloaded, _ = transforms((img, boxes))
+    predict_image_tensor(image_tensor_reloaded.unsqueeze(0))
