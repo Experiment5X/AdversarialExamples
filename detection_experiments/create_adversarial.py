@@ -6,7 +6,7 @@ import pickle
 import numpy as np
 from PIL import Image
 from pathlib import Path
-from setup_yolo_model import setup_model
+from setup_yolo_model import setup_model, get_adversarial_loss, get_prediction_names
 from pytorch_yolov3.models import Darknet
 from pytorch_yolov3.utils.datasets import ImageFile
 from pytorch_yolov3.utils.transforms import DEFAULT_TRANSFORMS, Resize
@@ -39,8 +39,6 @@ def is_image_file(file_name):
     return f.endswith('.png') or f.endswith('.jpg') or f.endswith('.jpeg')
 
 
-class_to_hide = 12
-
 if len(sys.argv) < 2:
     print('Must specify an image file or directory full of image files')
     exit(-1)
@@ -67,7 +65,6 @@ for file_path in file_paths:
         original_image_tensor = input_imgs.type(Tensor)
         image_tensor = input_imgs.type(Tensor)
 
-        print(image_tensor)
         for i in range(0, 10):
             # Configure input
             x = image_tensor
@@ -76,35 +73,16 @@ for file_path in file_paths:
             # Get detections
             detections = model.forward(x)
 
-            # Get the confidences in the bboxes existing
-            bbox_confidence_mask = torch.zeros(detections.shape)
-            bbox_confidence_mask[:, :, 4] = 1
-            bbox_confidences = detections * bbox_confidence_mask
-
-            # Get the confidences in stop signs existing
-            stop_sign_confidence_mask = torch.zeros(detections.shape)
-            stop_sign_confidence_mask[:, :, 4 + class_to_hide] = 1
-            stop_sign_confidences = detections * stop_sign_confidence_mask
-
             # loss function wants all the bbox confidences to be 0
-            adversarial_loss = (
-                torch.sum(bbox_confidences)
-                + torch.sum(stop_sign_confidences)
-                + torch.norm(image_tensor - original_image_tensor, 2)
+            raw_adversarial_loss = get_adversarial_loss(detections)
+            adversarial_loss = raw_adversarial_loss + torch.norm(
+                image_tensor - original_image_tensor, 2
             )
             adversarial_loss.backward()
 
             # interpret the output matrix into the names of the objects detected
-            detections = non_max_suppression(detections, 0.8, 0.4)
-            if detections[0] is not None:
-                detected_objects = [
-                    f'{classes[int(detection[6])]} {detection[5]:.5f}'
-                    for detection in detections[0]
-                ]
-            else:
-                detected_objects = ['Nothing!']
+            detected_objects_str = get_prediction_names(detections, classes)
 
-            detected_objects_str = ', '.join(detected_objects)
             print(
                 f'[{i}] Adversarial loss = {adversarial_loss:.5f} - detected objects: {detected_objects_str}'
             )

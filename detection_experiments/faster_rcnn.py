@@ -7,7 +7,7 @@ def process_prediction(prediction_infos):
         max(prediction_infos, key=lambda info: len(info['scores']))['scores']
     )
     all_confidence_scores = torch.zeros((len(prediction_infos), confidence_score_size))
-    print('Detections...')
+    print('Faster-RCNN Detections...')
     for image_index, info in enumerate(prediction_infos):
         for prediction_class, confidence_score in zip(info['labels'], info['scores']):
             class_name = COCO_INSTANCE_CATEGORY_NAMES[prediction_class]

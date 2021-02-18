@@ -18,7 +18,7 @@ def predict_image_tensor(image_tensor):
     detections = model.forward(image_tensor)
     detections = non_max_suppression(detections, 0.8, 0.4)
 
-    print('Detected: ')
+    print('YOLOv3 Detected: ')
     if detections[0] is not None:
         for detection in detections[0]:
             bbox_confidence_score = detection[4]
