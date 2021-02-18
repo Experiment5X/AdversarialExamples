@@ -1,5 +1,6 @@
 import sys
 import torch
+import random
 import numpy as np
 from PIL import Image
 from torchvision.transforms import ToTensor, ToPILImage
@@ -15,16 +16,16 @@ to_pil_image = ToPILImage()
 
 
 def create_adversarial(image_path):
-    image = Image.open(image_path).convert('RGB')
+    image = Image.open(image_path).convert('RGB').resize((416, 416))
     image_tensor = to_tensor(image).unsqueeze(0)
     orginal_image_tensor = to_tensor(image).unsqueeze(0)
 
     rcnn_model = fasterrcnn_resnet50_fpn(pretrained=True, pretrained_backbone=True)
     rcnn_model.eval()
 
-    yolo_model, yolo_classes = setup_model(image_path)
+    yolo_model, yolo_classes = setup_model()
 
-    for iteration in range(0, 25):
+    for iteration in range(0, 30):
         image_tensor.requires_grad = True
 
         rccn_detections = rcnn_model.forward(image_tensor)
@@ -57,7 +58,8 @@ def create_adversarial(image_path):
 adversarial_image_tensor = create_adversarial(image_path)
 adversarial_image = to_pil_image(adversarial_image_tensor.squeeze(0))
 
-adversarial_image.save('./ensemble_adversarial.png')
+image_id = random.randint(0, 1000)
+adversarial_image.save(f'./ensemble_adversarial-{image_id}.png')
 
 print('Final adversarial image predictions...')
 predict_rcnn(adversarial_image_tensor)
