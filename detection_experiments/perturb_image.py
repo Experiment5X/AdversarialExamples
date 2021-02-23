@@ -27,7 +27,7 @@ def adjust_contrast(enhance_amount):
 def grayscale(enhance_amount):
     def modify(image_array):
         image = Image.fromarray(image_array)
-        adjusted_image = ImageEnhance.Color(image).enhance(0.25)
+        adjusted_image = ImageEnhance.Color(image).enhance(enhance_amount)
 
         return np.array(adjusted_image)
 
@@ -65,14 +65,19 @@ if __name__ == '__main__':
 
     image_path = sys.argv[1]
     perturb_function_name = sys.argv[2]
-    perturb_parameter = int(sys.argv[3])
+    perturb_parameter = float(sys.argv[3])
 
     if perturb_function_name not in perturb_functions:
         print(f'Unknown perturb function "{perturb_function_name}"')
         exit(-1)
 
     base_file_name = Path(image_path).stem
-    out_image_path = f'../test_images/perturbed/{base_file_name}_{perturb_function_name}_{perturb_parameter}.png'
+    perturb_param_str = (
+        str(int(perturb_parameter))
+        if perturb_parameter.is_integer()
+        else f'{perturb_parameter:.3f}'.replace('.', '_')
+    )
+    out_image_path = f'../test_images/perturbed/{base_file_name}_{perturb_function_name}_{perturb_param_str}.png'
 
     perturb_func = perturb_functions[perturb_function_name](perturb_parameter)
     perturb_image(image_path, out_image_path, perturb_func)
