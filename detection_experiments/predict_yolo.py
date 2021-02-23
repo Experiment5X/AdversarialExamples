@@ -36,8 +36,12 @@ def predict_image_tensor(image_tensor):
         print('Nothing!')
 
 
-if __name__ == '__main__':
+def predict(image_path):
     image = Image.open(image_path).convert('RGB')
     image_tensor = to_tensor(image).unsqueeze(0)
 
     predict_image_tensor(image_tensor)
+
+
+if __name__ == '__main__':
+    predict(image_path)
