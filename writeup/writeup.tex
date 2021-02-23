@@ -26,8 +26,11 @@
 \section{Accuracies with Perturbation}
 
 \subsection{Adding Noise}
+Noise was added to the images by generating a random tensor the same size as the input image. The random tensor's values are between 0 and 1, and the image's pixel values are between 0 and 255. To adjust the noisiness of the images, the random tensor was multiplied by the integer parameter "noise" to scale it up. The noise multiplier used in each of the images is shown at the top of the column.
+
 \begin{center}
 \begin{tabular}{ c c c c }
+    noise = 0 & noise = 100 & noise = 200 & noise = 500 \\
     \includegraphics[width=0.2\linewidth]{../test_images/stop.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop_noise_100.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop_noise_200.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop_noise_500.png} \\
     \makecell{YOLOv3 = 0.99987 \\ RCNN = 0.99987} & \makecell{YOLOv3 = 0.99987 \\ RCNN = 0.99993} & \makecell{YOLOv3 = 0.99968 \\ RCNN = 0.99610} & \makecell{YOLOv3 = 0.99985 \\ RCNN = 0} \\  
     \includegraphics[width=0.2\linewidth]{../test_images/stop3.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop3_noise_100.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop3_noise_200.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop3_noise_500.png} \\
@@ -36,8 +39,10 @@
 \end{center}
 
 \subsection{Grayscale}
+The images were converted to grayscale by removing a percentage of their colors. The value used for each of the images is shown at the top of the columns.
 \begin{center}
 \begin{tabular}{ c c c c }
+    color = 100\% & color = 50\% & color = 25\% & color = 0\% \\
     \includegraphics[width=0.2\linewidth]{../test_images/stop.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop_grayscale_0_500.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop_grayscale_0_250.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop_grayscale_0_010.png} \\
     \makecell{YOLOv3 = 0.99987 \\ RCNN = 0.99987} & \makecell{YOLOv3 = 0.99988 \\ RCNN = 0.99987} & \makecell{YOLOv3 = 0.99989 \\ RCNN = 0.99986} & \makecell{YOLOv3 = 0.99986 \\ RCNN = 0.99868} \\  
     \includegraphics[width=0.2\linewidth]{../test_images/stop3.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed//stop3_grayscale_0_500.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop3_grayscale_0_250.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop3_grayscale_0_010.png} \\
@@ -46,12 +51,26 @@
 \end{center}
 
 \subsection{Contrast}
+The contrast was adjusted for each of the images using the "Contrast" enhancer in Pillow's ImageEnhance package. The contrast parameter given to this enhancer is shown at the top of each column.
 \begin{center}
 \begin{tabular}{ c c c c }
+    contrast = 1 & contrast = 0.05 & contrast = 0.025 & contrast = 0.01 \\
     \includegraphics[width=0.2\linewidth]{../test_images/stop.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop_contrast_0_050.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop_contrast_0_025.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop_contrast_0_010.png} \\
     \makecell{YOLOv3 = 0.99987 \\ RCNN = 0.99987} & \makecell{YOLOv3 = 0.99985 \\ RCNN = 0.99994} & \makecell{YOLOv3 = 0.99986 \\ RCNN = 0.99993} & \makecell{YOLOv3 = 0.99984 \\ RCNN = 0.99859} \\  
     \includegraphics[width=0.2\linewidth]{../test_images/stop3.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop3_contrast_0_050.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop3_contrast_0_025.png} & \includegraphics[width=0.2\linewidth]{../test_images/perturbed/stop3_contrast_0_010.png} \\
     \makecell{YOLOv3 = 0.99971 \\ RCNN = 0.99839} & \makecell{YOLOv3 = 0.99961 \\ RCNN = 0.99849} & \makecell{YOLOv3 = 0.99960 \\ RCNN = 0.99830} & \makecell{YOLOv3 = 0.99990 \\ RCNN = 0.99893} \\  
+\end{tabular}
+\end{center}
+
+\subsection{Multiple Perturbations}
+For these images all 3 perturbations were applied. First the contrast was set to 0.025, then noise was added with a multiplier of 200, and finally the color was removed from the image. 
+\begin{center}
+\begin{tabular}{ c c }
+    original & perturbed \\
+    \includegraphics[width=0.4\linewidth]{../test_images/stop.png} & \includegraphics[width=0.4\linewidth]{../test_images/perturbed/stop_contrast_0_025_noise_200_grayscale_0_010.png} \\
+    \makecell{YOLOv3 = 0.99987 \\ RCNN = 0.99987} & \makecell{YOLOv3 = 0.99992 \\ RCNN = 0} \\
+    \includegraphics[width=0.4\linewidth]{../test_images/stop3.png} & \includegraphics[width=0.4\linewidth]{../test_images/perturbed/stop3_contrast_0_025_noise_200_grayscale_0_010.png} \\
+    \makecell{YOLOv3 = 0.99971 \\ RCNN = 0.99839} & \makecell{YOLOv3 = 0.99984 \\ RCNN = 0.99803} \\
 \end{tabular}
 \end{center}
 
