@@ -1,5 +1,6 @@
 \documentclass{article}
 
+\usepackage{amsmath}
 \usepackage{geometry}
 \usepackage{graphicx}
 
@@ -23,7 +24,9 @@
 
 \section{Introduction}
 
-\section{Accuracies with Perturbation}
+Image classification and detection models are commonly used in real world applications such as autonomous vehicles \cite{CGV-079} and intrusion detection \cite{KIM2018845}. It's important that these systems are reliable and robust to attacks as reliance upon them increases. If it is possible to hide signs from an autonomous vehicle the results could be disastrous.
+
+\section{Adversarial Examples by Random Perturbation}
 
 \subsection{Adding Noise}
 Noise was added to the images by generating a random tensor the same size as the input image. The random tensor's values are between 0 and 1, and the image's pixel values are between 0 and 255. To adjust the noisiness of the images, the random tensor was multiplied by the integer parameter "noise" to scale it up. The noise multiplier used in each of the images is shown at the top of the column.
@@ -73,5 +76,42 @@ For these images all 3 perturbations were applied. First the contrast was set to
     \makecell{YOLOv3 = 0.99971 \\ RCNN = 0.99839} & \makecell{YOLOv3 = 0.99984 \\ RCNN = 0.99803} \\
 \end{tabular}
 \end{center}
+
+As shown above random perturbation of images has little affect on the confidence score for both YOLOv3 and Faster-RCNN. The confidence score only drops when there is so much perturbation that it is difficult to see what it is as a human.
+
+\section{Fast Gradient Sign Adversarial Images}
+
+The fast gradient sign method for creating adversarial examples was first introduced by Goodfellow et al in \cite{goodfellow2015explaining}. The method works by computing the loss function for the input image, and then taking the gradient with respect to the input image. The sign of the gradient is then added to the input image to ascend the loss function and create as much misclassification error as possible.
+
+\begin{equation}
+    \eta = \epsilon * \text{sign} (\nabla_x L(x))
+\end{equation}
+
+Where $x$ is the input image, $L$ is the loss function which contains the classification model, $\epsilon$ is the learning rate, and $\eta$ is the perturbation to add to the input image.
+
+The only problem with this method is that the output class that the model predicts after the perturbation is random, there isn't a way to choose it. A slight modification to the method was made so that instead of attempting to maximize the overall loss, the confidence score of a single class is used as the loss function to maximize. By optimizing this function, the confidence score of the target class will be increased.
+
+\begin{equation}
+    \eta = \epsilon * \text{sign} (\nabla_x (f_c(x))^2)
+\end{equation}
+
+Where $x$ is the input image and $f_c$ is the confidence score of the target class $c$ output by the model. This method was used to create adversarial examples on the VGG-16 \cite{simonyan2015deep} network, and run for several iterations until VGG-16 output the target class with a high confidence.
+
+\begin{center}
+\begin{tabular}{ c c c }
+    original & perturbed & difference \\
+    \includegraphics[width=0.3\linewidth]{../test_images/stop.png} & \includegraphics[width=0.3\linewidth]{../test_images/adversarial_vgg/stop.png} & \includegraphics[width=0.3\linewidth]{../test_images/adversarial_vgg/stop_diff.png} \\
+    \makecell{iPod confidence = 1.39 \\street sign confidence = 20.73} & \makecell{iPod confidence = 9.82 \\street sign confidence = 8.95} & \\
+\end{tabular}
+\end{center}
+
+\section{Adversarial Examples Against YOLOv3}
+
+\section{Ensemble Adversarial Examples}
+
+\section{Dispersion Reduction}
+
+\bibliographystyle{unsrt}
+\bibliography{references}
 
 \end{document}

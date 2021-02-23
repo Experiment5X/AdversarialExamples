@@ -28,4 +28,4 @@ def predict(image):
     prediction_tensor = model.forward(image_tensor)
     label_index = int(prediction_tensor.argmax().numpy())
 
-    return label_lookup[label_index]
+    return f'{label_lookup[label_index]} - {prediction_tensor[0][label_index]}'
