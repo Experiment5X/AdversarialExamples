@@ -22,4 +22,18 @@ Karen Simonyan and Andrew Zisserman.
 \newblock Very deep convolutional networks for large-scale image recognition,
   2015.
 
+\bibitem{Lu_2020_CVPR}
+Yantao Lu, Yunhan Jia, Jianyu Wang, Bai Li, Weiheng Chai, Lawrence Carin, and
+  Senem Velipasalar.
+\newblock Enhancing cross-task black-box transferability of adversarial
+  examples with dispersion reduction.
+\newblock In {\em Proceedings of the IEEE/CVF Conference on Computer Vision and
+  Pattern Recognition (CVPR)}, June 2020.
+
+\bibitem{olah2017feature}
+Chris Olah, Alexander Mordvintsev, and Ludwig Schubert.
+\newblock Feature visualization.
+\newblock {\em Distill}, 2017.
+\newblock https://distill.pub/2017/feature-visualization.
+
 \end{thebibliography}

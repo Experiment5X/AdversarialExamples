@@ -24,7 +24,7 @@
 
 \section{Introduction}
 
-Image classification and detection models are commonly used in real world applications such as autonomous vehicles \cite{CGV-079} and intrusion detection \cite{KIM2018845}. It's important that these systems are reliable and robust to attacks as reliance upon them increases. If it is possible to hide signs from an autonomous vehicle the results could be disastrous.
+Image classification and detection models are commonly used in real world applications such as autonomous vehicles \cite{CGV-079} and intrusion detection \cite{KIM2018845}. It's important that these systems are reliable and robust to attacks as reliance upon them increases.
 
 \section{Adversarial Examples by Random Perturbation}
 
@@ -70,14 +70,16 @@ For these images all 3 perturbations were applied. First the contrast was set to
 \begin{center}
 \begin{tabular}{ c c }
     original & perturbed \\
-    \includegraphics[width=0.4\linewidth]{../test_images/stop.png} & \includegraphics[width=0.4\linewidth]{../test_images/perturbed/stop_contrast_0_025_noise_200_grayscale_0_010.png} \\
+    \includegraphics[width=0.3\linewidth]{../test_images/stop.png} & \includegraphics[width=0.3\linewidth]{../test_images/perturbed/stop_contrast_0_025_noise_200_grayscale_0_010.png} \\
     \makecell{YOLOv3 = 0.99987 \\ RCNN = 0.99987} & \makecell{YOLOv3 = 0.99992 \\ RCNN = 0} \\[1cm]
-    \includegraphics[width=0.4\linewidth]{../test_images/stop3.png} & \includegraphics[width=0.4\linewidth]{../test_images/perturbed/stop3_contrast_0_025_noise_200_grayscale_0_010.png} \\
+    \includegraphics[width=0.3\linewidth]{../test_images/stop3.png} & \includegraphics[width=0.3\linewidth]{../test_images/perturbed/stop3_contrast_0_025_noise_200_grayscale_0_010.png} \\
     \makecell{YOLOv3 = 0.99971 \\ RCNN = 0.99839} & \makecell{YOLOv3 = 0.99984 \\ RCNN = 0.99803} \\
 \end{tabular}
 \end{center}
 
 As shown above random perturbation of images has little affect on the confidence score for both YOLOv3 and Faster-RCNN. The confidence score only drops when there is so much perturbation that it is difficult to see what it is as a human.
+
+Unsurprising because its common to alter images by adding noise, rotating and flipping images.
 
 \section{Fast Gradient Sign Adversarial Images}
 
@@ -110,6 +112,45 @@ Where $x$ is the input image and $f_c$ is the confidence score of the target cla
 \section{Ensemble Adversarial Examples}
 
 \section{Dispersion Reduction}
+Dispersion reduction \cite{Lu_2020_CVPR} is a technique of creating adversarial images that are capable of fooling black box object detectors. Meaning that when using dispersion reduction the attacker doesn't need access to the victim model. It works by using a known image classifier to create the adversarial image for the black box object detector.
+
+Each layer of the image classifier produces a feature map. The level of abstraction of the features increases the deeper in the network that they're produced. The early layers extract simple features like edges and shapes, while the later layers extract higher level features like pieces of objects such as a dog's nose. \cite{olah2017feature}
+
+The dispersion reduction attack aims to adjust the input image so that a feature map doesn't contain the features that are visibly present to a human in the image. This attack works by reducing the standard deviation of the target feature map. The source network is evaluated up until the layer that produces the target feature map, then the standard deviation of it is calculated and the derivative of this value is computed with respect to the input image. The sign of the resulting gradient is then added back to the input image to reduce the standard deviation of its feature map.
+
+\begin{equation}
+    \eta = - \epsilon * \text{sign}(\nabla_x \text{std}(f_{\text{fm}}(x)))
+\end{equation}
+
+Experiments were run to determine the effectiveness of this attack with hiding stop signs from object detectors. For this experiment the 12th layer of VGG-16 was used as the feature map to reduce, which a tensor of size (256, 120, 120). The original was updated using the above equation for 25 and 50 iterations with $\epsilon = 2$ and the results are shown below.
+
+
+\begin{center}
+    \begin{tabular}{c c c}
+        original & 25 iterations & 50 iterations \\
+        \includegraphics[width=0.3\linewidth]{../test_images/skiers.jpg} & \includegraphics[width=0.3\linewidth]{../test_images/dispersion_reduced/skiers25.png} & \includegraphics[width=0.3\linewidth]{../test_images/dispersion_reduced/skiers50.png} \\
+
+        \makecell[t]{\textbf{YOLOv3} \\ person 0.99993 \\ skis 0.99864 \\ person 0.99809 \\ \\ \textbf{RCNN} \\ person 0.99927 \\ skis 0.99780 \\ person 0.98474 \\ backpack 0.82482} & \makecell[t]{\textbf{YOLOv3} \\ person 0.99994 \\ \\ \textbf{RCNN} \\ person 0.99928 \\ skis 0.99679 \\ person 0.93090 \\ backpack 0.71321 } & \makecell[t]{\textbf{YOLOv3} \\ person 0.99992 \\ \\ \textbf{RCNN} \\ person 0.99919 \\ skis 0.99537 \\ person 0.86015 \\ backpack 0.62698} \\[4.5cm]
+    \end{tabular}
+\end{center}
+
+\begin{center}
+    \begin{tabular}{c c c}
+        \includegraphics[width=0.3\linewidth]{../test_images/stop.png} & \includegraphics[width=0.3\linewidth]{../test_images/dispersion_reduced/stop25.png} & \includegraphics[width=0.3\linewidth]{../test_images/dispersion_reduced/stop50.png} \\
+
+        \makecell[t]{\textbf{YOLOv3} \\ stop sign 0.99987 \\ \\ \textbf{RCNN} \\ stop sign 0.99987} & \makecell[t]{\textbf{YOLOv3} \\ stop sign 0.99985 \\ \\ \textbf{RCNN} \\ stop sign 0.99976} & \makecell[t]{\textbf{YOLOv3} \\ stop sign 0.99985 \\ \\ \textbf{RCNN} \\ stop sign 0.99662}
+\end{tabular}
+\end{center}
+
+\begin{center}
+    \begin{tabular}{c c c}
+        \includegraphics[width=0.3\linewidth]{../test_images/stop3.png} & \includegraphics[width=0.3\linewidth]{../test_images/dispersion_reduced/stop3_25.png} & \includegraphics[width=0.3\linewidth]{../test_images/dispersion_reduced/stop3_50.png} \\
+
+        \makecell[t]{\textbf{YOLOv3} \\ stop sign 0.99971 \\ car 0.99317 \\ \\ \textbf{RCNN} \\ stop sign 0.99839 \\ car 0.91922 \\} & \makecell[t]{\textbf{YOLOv3} \\ stop sign 0.99974 \\ car 0.97653 \\ \\ \textbf{RCNN} \\ stop sign 0.99884 \\ car 0.90228} & \makecell[t]{\textbf{YOLOv3} \\ stop sign 0.99975 \\ car 0.97283 \\ \\ \textbf{RCNN} \\ stop sign 0.99880 \\ car 0.95387}
+\end{tabular}
+\end{center}
+
+This attack seems to work for hiding objects in the image that are small or less pronounced like the skis in the first image. Even after just 25 iterations YOLOv3 was unable to detect the skis. However this attack had a lesser effect on RCNN, with it only reducing the confidence scores of the person in the distance and teh backpack. For hiding stop signs this attack didn't work at all. For both YOLOv3 and RCNN the attack hardly even changed the confidence scores for either stop sign image. This is likely due to the fact that stop signs have a unique shape, color and font that is unlike the other object classes so the model wouldn't be confusing it with anything else. In addition stop signs are designed to be easy to see and stand out a lot against the background unlike the skis in the first image.
 
 \bibliographystyle{unsrt}
 \bibliography{references}

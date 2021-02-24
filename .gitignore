@@ -9,3 +9,6 @@ __latexindent_temp.tex
 *.fls
 *.log
 *.synctex.gz
+
+*.bbl
+*.blg

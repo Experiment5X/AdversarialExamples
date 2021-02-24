@@ -9,7 +9,7 @@ from torch.nn import Identity, Sequential
 from common import CrossEntropyLoss, loader, inv_normalize, model, normalize, predict
 
 
-def reduce_dispersion(image, target_layer_index=19):
+def reduce_dispersion(image, target_layer_index=12):
     # create the model chopped off at the desired feature map layer
     vgg_model = Sequential(
         *[model.features[i] for i in range(0, target_layer_index + 1)]
@@ -22,7 +22,7 @@ def reduce_dispersion(image, target_layer_index=19):
     orig_image_tensor = loader(image).float().detach()
 
     print('Starting iterations...')
-    for i in range(0, 50):
+    for i in range(0, 25):
         x = image_tensor
         x.requires_grad = True
 
