@@ -111,6 +111,29 @@ Where $x$ is the input image and $f_c$ is the confidence score of the target cla
 
 \section{Ensemble Adversarial Examples}
 
+The LowKey adversarial attack \cite{cherepanova2021lowkey} on AWS Rekognition was successful by creating adversarial images that are able to fool multiple models at once. The technique is the same as the one used for adversarial examples against YOLOv3 except RCNN was added in as well. The loss function to minimize is the confidence score of the bounding boxes predicted by both models.
+
+\begin{equation}
+    \eta = \epsilon (\nabla_x g(f_{\text{yolo}}(x)) + g(f_{\text{rcnn}}(x)))
+\end{equation}
+
+Where $\epsilon$ is the learning rate and $g$ is a function to extract the confidence scores of the bounding boxes from the output matrices of YOLOv3 and RCNN. $f_{\text{yolo}}$ is the YOLOv3 model and $f_{\text{rcnn}}$ is the Faster-RCNN model. This equation was run for 30 iterations to create adversarial images that can fool both networks. The results are visible below, the confidence scores for the stop signs are listed beneath each of the images.
+
+\begin{center}
+    \begin{tabular}{c c@{\hskip 1cm} c c}
+        original & adversarial & original & adversarial \\
+        \includegraphics[width=0.2\linewidth]{../test_images/stop.png} &  \includegraphics[width=0.2\linewidth]{../test_images/ensemble_adversarials/stop.png} & 
+        \includegraphics[width=0.2\linewidth]{../test_images/stop2.png} &  \includegraphics[width=0.2\linewidth]{../test_images/ensemble_adversarials/stop2.png} \\
+
+        \makecell[t]{YOLOv3 = 0.99987 \\ RCNN = 0.99987} & \makecell[t]{YOLOv3 = nothing \\ RCNN = nothing} & \makecell[t]{YOLOv3 = 0.99995 \\ RCNN = 0.99894} & \makecell[t]{YOLOv3 = nothing \\ RCNN = nothing} \\[1cm]
+
+        \includegraphics[width=0.2\linewidth]{../test_images/stop3.png} &  \includegraphics[width=0.2\linewidth]{../test_images/ensemble_adversarials/stop3.png} & 
+        \includegraphics[width=0.2\linewidth]{../test_images/stop4.png} &  \includegraphics[width=0.2\linewidth]{../test_images/ensemble_adversarials/stop4.png} \\
+
+        \makecell[t]{YOLOv3 = 0.99971 \\ RCNN = 0.99839} & \makecell[t]{YOLOv3 = nothing \\ RCNN = nothing} & \makecell[t]{YOLOv3 = 0.99991 \\ RCNN = 0.99904} & \makecell[t]{YOLOv3 = nothing \\ RCNN = 0.06873} \\
+    \end{tabular}
+\end{center}
+
 \section{Dispersion Reduction}
 Dispersion reduction \cite{Lu_2020_CVPR} is a technique of creating adversarial images that are capable of fooling black box object detectors. Meaning that when using dispersion reduction the attacker doesn't need access to the victim model. It works by using a known image classifier to create the adversarial image for the black box object detector.
 
@@ -122,7 +145,7 @@ The dispersion reduction attack aims to adjust the input image so that a feature
     \eta = - \epsilon * \text{sign}(\nabla_x \text{std}(f_{\text{fm}}(x)))
 \end{equation}
 
-Experiments were run to determine the effectiveness of this attack with hiding stop signs from object detectors. For this experiment the 12th layer of VGG-16 was used as the feature map to reduce, which a tensor of size (256, 120, 120). The original was updated using the above equation for 25 and 50 iterations with $\epsilon = 2$ and the results are shown below.
+Experiments were run to determine the effectiveness of this attack with hiding stop signs from object detectors. For this experiment the output of the 12th layer of VGG-16 was used as the feature map to reduce, which a tensor of size (256, 120, 120). The original was updated using the above equation for 25 and 50 iterations with $\epsilon = 2$ and the results are shown below.
 
 
 \begin{center}
@@ -150,7 +173,7 @@ Experiments were run to determine the effectiveness of this attack with hiding s
 \end{tabular}
 \end{center}
 
-This attack seems to work for hiding objects in the image that are small or less pronounced like the skis in the first image. Even after just 25 iterations YOLOv3 was unable to detect the skis. However this attack had a lesser effect on RCNN, with it only reducing the confidence scores of the person in the distance and teh backpack. For hiding stop signs this attack didn't work at all. For both YOLOv3 and RCNN the attack hardly even changed the confidence scores for either stop sign image. This is likely due to the fact that stop signs have a unique shape, color and font that is unlike the other object classes so the model wouldn't be confusing it with anything else. In addition stop signs are designed to be easy to see and stand out a lot against the background unlike the skis in the first image.
+This attack seems to work for hiding objects in the image that are small or less pronounced like the skis in the first image. Even after just 25 iterations YOLOv3 was unable to detect the skis. However this attack had less of an effect on RCNN, with it only reducing the confidence scores of the person in the distance and the backpack. For hiding stop signs this attack didn't work at all. For both YOLOv3 and RCNN the attack hardly even changed the confidence scores for either stop sign image. This is likely due to the fact that stop signs have a unique shape, color and font that is unlike the other object classes so the model wouldn't be confusing it with anything else. In addition stop signs are designed to be easy to see and stand out a lot against the background unlike the skis in the first image.
 
 \bibliographystyle{unsrt}
 \bibliography{references}

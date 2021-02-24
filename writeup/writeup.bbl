@@ -27,6 +27,12 @@ Karen Simonyan and Andrew Zisserman.
 \newblock Very deep convolutional networks for large-scale image recognition,
   2015.
 
+\bibitem{cherepanova2021lowkey}
+Valeriia Cherepanova, Micah Goldblum, Harrison Foley, Shiyuan Duan, John
+  Dickerson, Gavin Taylor, and Tom Goldstein.
+\newblock Lowkey: Leveraging adversarial attacks to protect social media users
+  from facial recognition, 2021.
+
 \bibitem{Lu_2020_CVPR}
 Yantao Lu, Yunhan Jia, Jianyu Wang, Bai Li, Weiheng Chai, Lawrence Carin, and
   Senem Velipasalar.
