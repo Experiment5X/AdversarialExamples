@@ -79,7 +79,7 @@ For these images all 3 perturbations were applied. First the contrast was set to
 
 As shown above random perturbation of images has little affect on the confidence score for both YOLOv3 and Faster-RCNN. The confidence score only drops when there is so much perturbation that it is difficult to see what it is as a human.
 
-Unsurprising because its common to alter images by adding noise, rotating and flipping images.
+Data augmentation is a popular technique used when training convolutional neural networks to increase the amount of data in the training set. Images are randomly modified in ways that do not change their label, such as translating the image, rotating it, adding random noise, and changing the colors \cite{shorten2019survey}. It is likely that both YOLOv3 and Faster-RCNN were trained using this technique which is why these perturbed images were mostly unsuccessful at fooling either of the models.
 
 \section{Fast Gradient Sign Adversarial Images}
 

@@ -13,6 +13,11 @@ Seung~Hyun Kim, Su~Chang Lim, and Do~Yeon Kim.
   active intruder detection, classification, tracking, and action recognition.
 \newblock {\em Annals of Nuclear Energy}, 112:845--855, 2018.
 
+\bibitem{shorten2019survey}
+Connor Shorten and Taghi~M Khoshgoftaar.
+\newblock A survey on image data augmentation for deep learning.
+\newblock {\em Journal of Big Data}, 6(1):1--48, 2019.
+
 \bibitem{goodfellow2015explaining}
 Ian~J. Goodfellow, Jonathon Shlens, and Christian Szegedy.
 \newblock Explaining and harnessing adversarial examples, 2015.
