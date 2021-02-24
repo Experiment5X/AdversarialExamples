@@ -109,6 +109,33 @@ Where $x$ is the input image and $f_c$ is the confidence score of the target cla
 
 \section{Adversarial Examples Against YOLOv3}
 
+Adversarial examples were created for YOLOv3 \cite{redmon2018yolov3} by using a technique similar to \cite{goodfellow2015explaining}. The output of YOLOv3 is a matrix, where each row is a possible bounding box prediction. The format of each row is as follows: 4 floats describing the bounding box, 1 float indicating the confidence score of an object being inside the bounding box, and 80 floats which are the confidence scores of each of the label classes.
+
+The loss function made to create adversarial examples is the sum of all the bounding box confidence scores, and the confidence scores for the "stop sign" class. The loss function was regularized by adding the difference between the adversarial image and the original image so the final adversarial image will have minimal visible changes.
+
+\begin{equation}
+    \eta = \epsilon * (\nabla_{x}g(f(x))) + (x - \hat{x})^2
+\end{equation}
+
+Where $\epsilon$ is the learning rate, $g$ is a function to extract the bounding box confidence scores and stop sign confidence scores, $f$ is the YOLOv3 model, $x$ is the adversarial image at the current iteration, and $\hat{x}$ is the original image. This method was run for 30 iterations, performing gradient descent on this loss function to find an image that is as similar to the input as possible while also producing low confidence scores. The resulting images are shown below:
+
+\begin{center}
+    \begin{tabular}{c c@{\hskip 1cm} c c}
+        original & adversarial & original & adversarial \\
+        \includegraphics[width=0.2\linewidth]{../test_images/stop.png} &  \includegraphics[width=0.2\linewidth]{../test_images/adversarial_out/stop.png} & 
+        \includegraphics[width=0.2\linewidth]{../test_images/stop2.png} &  \includegraphics[width=0.2\linewidth]{../test_images/adversarial_out/stop2.png} \\
+
+        \makecell[t]{YOLOv3 = 0.99987 \\ RCNN = 0.99987} & \makecell[t]{YOLOv3 = nothing \\ RCNN = 0.98742} & \makecell[t]{YOLOv3 = 0.99995 \\ RCNN = 0.99894} & \makecell[t]{YOLOv3 = nothing \\ RCNN = 0.99921} \\[1cm]
+
+        \includegraphics[width=0.2\linewidth]{../test_images/stop3.png} &  \includegraphics[width=0.2\linewidth]{../test_images/adversarial_out/stop3.png} & 
+        \includegraphics[width=0.2\linewidth]{../test_images/stop4.png} &  \includegraphics[width=0.2\linewidth]{../test_images/adversarial_out/stop4.png} \\
+
+        \makecell[t]{YOLOv3 = 0.99971 \\ RCNN = 0.99839} & \makecell[t]{YOLOv3 = nothing \\ RCNN = 0.99855} & \makecell[t]{YOLOv3 = 0.99991 \\ RCNN = 0.99904} & \makecell[t]{YOLOv3 = nothing \\ RCNN = 0.99883} \\
+    \end{tabular}
+\end{center}
+
+These images all have minimal changes to them, the adversarial noise added to them is difficult to see. They were also all able to trick YOLOv3. However, this did not transfer to RCNN which was able to easily detect all the stop signs in all of the images.
+
 \section{Ensemble Adversarial Examples}
 
 The LowKey adversarial attack \cite{cherepanova2021lowkey} on AWS Rekognition was successful by creating adversarial images that are able to fool multiple models at once. The technique is the same as the one used for adversarial examples against YOLOv3 except RCNN was added in as well. The loss function to minimize is the confidence score of the bounding boxes predicted by both models.

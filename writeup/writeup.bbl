@@ -27,6 +27,10 @@ Karen Simonyan and Andrew Zisserman.
 \newblock Very deep convolutional networks for large-scale image recognition,
   2015.
 
+\bibitem{redmon2018yolov3}
+Joseph Redmon and Ali Farhadi.
+\newblock Yolov3: An incremental improvement, 2018.
+
 \bibitem{cherepanova2021lowkey}
 Valeriia Cherepanova, Micah Goldblum, Harrison Foley, Shiyuan Duan, John
   Dickerson, Gavin Taylor, and Tom Goldstein.
