@@ -22,11 +22,9 @@
 \begin{document}
 \maketitle
 
-\section{Introduction}
-
-Image classification and detection models are commonly used in real world applications such as autonomous vehicles \cite{CGV-079} and intrusion detection \cite{KIM2018845}. It's important that these systems are reliable and robust to attacks as reliance upon them increases.
-
 \section{Adversarial Examples by Random Perturbation}
+
+The goal is to create adversarial images for a black box object detector. With no access to the model, a simple approach is to distort the source images in various ways with the hope that the model will no longer be able to see the objects in the images. Experiments were run to determine the effectiveness of this naive approach.
 
 \subsection{Adding Noise}
 Noise was added to the images by generating a random tensor the same size as the input image. The random tensor's values are between 0 and 1, and the image's pixel values are between 0 and 255. To adjust the noisiness of the images, the random tensor was multiplied by the integer parameter "noise" to scale it up. The noise multiplier used in each of the images is shown at the top of the column. The results of this experiment are visible in figure \ref{fig:randnoise}.
@@ -92,7 +90,7 @@ For these images all 3 perturbations were applied. First the contrast was set to
 \label{fig:multiperturb}
 \end{figure}
 
-As shown in figure \ref{fig:multiperturb} random perturbation of images has little affect on the confidence score for both YOLOv3 and Faster-RCNN. The confidence score only drops when there is so much perturbation that it is difficult to see what it is as a human.
+As shown in figure \ref{fig:multiperturb} random perturbation of images has little affect on the confidence score for both YOLOv3 and Faster-RCNN. The confidence score only drops when there is so much distortion that it is difficult to see what it is as a human.
 
 Data augmentation is a popular technique used when training convolutional neural networks to increase the amount of data in the training set. Images are randomly modified in ways that do not change their label, such as translating the image, rotating it, adding random noise, and changing the colors \cite{shorten2019survey}. It is likely that both YOLOv3 and Faster-RCNN were trained using this technique which is why these perturbed images were mostly unsuccessful at fooling either of the models.
 
@@ -112,7 +110,7 @@ The only problem with this method is that the output class that the model predic
     \eta = \epsilon * \text{sign} (\nabla_x (f_c(x))^2)
 \end{equation}
 
-Where $x$ is the input image and $f_c$ is the confidence score of the target class $c$ output by the model. This method was used to create adversarial examples on the VGG-16 \cite{simonyan2015deep} network, and run for several iterations until VGG-16 output the target class with a high confidence. Below is a comparison between the input image and the adversarial image that was created. The last column shows the difference between the 2 images scaled up so the differences are visible. The dark pixels changed the least and the lighter pixels changed the most.
+Where $x$ is the input image and $f_c$ is the confidence score of the target class $c$ output by the model. This method was used to create adversarial examples on the VGG-16 \cite{simonyan2015deep} network, and run for several iterations of gradient descent until VGG-16 output the target class with a high confidence. In figure \ref{fig:vggadversarial} is a comparison between the input image and the adversarial image that was created. The last column shows the difference between the 2 images scaled up so the differences are visible. In the difference image the lighter pixels were changed the most, and the darker pixels were changed the least.
 
 \begin{figure}[h]
 \centering
@@ -127,15 +125,15 @@ Where $x$ is the input image and $f_c$ is the confidence score of the target cla
 
 \section{Adversarial Examples Against YOLOv3}
 
-Adversarial examples were created for YOLOv3 \cite{redmon2018yolov3} by using a technique similar to \cite{goodfellow2015explaining}. The output of YOLOv3 is a matrix, where each row is a possible bounding box prediction. The format of each row is as follows: 4 floats describing the bounding box, 1 float indicating the confidence score of an object being inside the bounding box, and 80 floats which are the confidence scores of each of the label classes.
+Adversarial examples were created for YOLOv3 \cite{redmon2018yolov3} by using a technique similar to \cite{goodfellow2015explaining}. The output of YOLOv3 is a matrix, where each row is a possible bounding box prediction. The format of each row is as follows: 4 floats describing the bounding box, 1 float indicating the confidence score of an object actually being inside the bounding box, and 80 floats which are the confidence scores of each of the label classes.
 
 The loss function made to create adversarial examples is the sum of all the bounding box confidence scores, and the confidence scores for the "stop sign" class. The loss function was regularized by adding the difference between the adversarial image and the original image so the final adversarial image will have minimal visible changes.
 
 \begin{equation}
-    \eta = \epsilon * (\nabla_{x}g(f(x))) + (x - \hat{x})^2
+    \eta = \epsilon * [\nabla_{x} (g_{\text{bbox}}(f(x))) + g_{\text{stop}}(f(x)))] + (x - \hat{x})^2
 \end{equation}
 
-Where $\epsilon$ is the learning rate, $g$ is a function to extract the bounding box confidence scores and stop sign confidence scores, $f$ is the YOLOv3 model, $x$ is the adversarial image at the current iteration, and $\hat{x}$ is the original image. This method was run for 30 iterations, performing gradient descent on this loss function to find an image that is as similar to the input as possible while also producing low confidence scores. The resulting images are shown in figure \ref{fig:yoloadversarial}.
+Where $\epsilon$ is the learning rate, $g_{\text{bbox}}$ is a function to extract the bounding box confidence scores and $g_{\text{stop}}$ extracts the stop sign confidence scores, $f$ is the YOLOv3 model, $x$ is the adversarial image at the current iteration, and $\hat{x}$ is the original image. This method was run for 30 iterations, performing gradient descent on this loss function to find an image that is as similar to the input as possible while also producing low confidence scores. The resulting images are shown in figure \ref{fig:yoloadversarial}.
 
 \begin{figure}[h]
 \centering
@@ -155,17 +153,17 @@ Where $\epsilon$ is the learning rate, $g$ is a function to extract the bounding
 \label{fig:yoloadversarial}
 \end{figure}
 
-These images all have minimal changes to them, the adversarial noise added to them is difficult to see. They were also all able to trick YOLOv3. However, this did not transfer to RCNN which was able to easily detect all the stop signs in all of the images.
+An experiment was run to determine the effectiveness of this attack across several different stop sign images. 11 images were used in total, where the stop signs were varying distances away from the camera. For all 11 images, this attack was able to create adversarial images that look very similar to their source images and were able to trick YOLOv3. However, this did not transfer to RCNN \cite{ren2016faster} which was able to easily detect all the stop signs in all of the images.
 
 \section{Ensemble Adversarial Examples}
 
-The LowKey adversarial attack \cite{cherepanova2021lowkey} on AWS Rekognition was successful by creating adversarial images that are able to fool multiple models at once. The technique is the same as the one used for adversarial examples against YOLOv3 except RCNN was added in as well. The loss function to minimize is the confidence score of the bounding boxes predicted by both models.
+The LowKey adversarial attack \cite{cherepanova2021lowkey} on AWS Rekognition was successful by creating adversarial images that are able to fool multiple models at once. The technique is the same as the one used for adversarial examples against YOLOv3 \cite{redmon2018yolov3} except RCNN \cite{ren2016faster} was added in as well. The loss function to minimize is the confidence score of the bounding boxes predicted by both models.
 
 \begin{equation}
     \eta = \epsilon (\nabla_x g(f_{\text{yolo}}(x)) + g(f_{\text{rcnn}}(x)))
 \end{equation}
 
-Where $\epsilon$ is the learning rate and $g$ is a function to extract the confidence scores of the bounding boxes from the output matrices of YOLOv3 and RCNN. $f_{\text{yolo}}$ is the YOLOv3 model and $f_{\text{rcnn}}$ is the Faster-RCNN model. This equation was run for 30 iterations to create adversarial images that can fool both networks. The results are visible below, the confidence scores for the stop signs are listed beneath each of the images.
+Where $\epsilon$ is the learning rate and $g$ is a function to extract the confidence scores of the bounding boxes from the output matrices of YOLOv3 and RCNN. $f_{\text{yolo}}$ is the YOLOv3 model and $f_{\text{rcnn}}$ is the Faster-RCNN model. This equation was run for 30 iterations of gradient descent to create adversarial images that can fool both networks. The results are visible in figure \ref{fig:yoloadversarial}, the confidence scores for the stop signs are listed beneath each of the images.
 
 \begin{figure}[h]
 \centering
@@ -186,17 +184,17 @@ Where $\epsilon$ is the learning rate and $g$ is a function to extract the confi
 \end{figure}
 
 \section{Dispersion Reduction}
-Dispersion reduction \cite{Lu_2020_CVPR} is a technique of creating adversarial images that are capable of fooling black box object detectors. Meaning that when using dispersion reduction the attacker doesn't need access to the victim model. It works by using a known image classifier to create the adversarial image for the black box object detector.
+Dispersion reduction \cite{Lu_2020_CVPR} is a technique of creating adversarial images that are capable of fooling black box object detectors. A known source model, like VGG-16 \cite{simonyan2015deep}, is used to create the adversarial images that can hopefully fool any object detector network without ever having access to it.
 
-Each layer of the image classifier produces a feature map. The level of abstraction of the features increases the deeper in the network that they're produced. The early layers extract simple features like edges and shapes, while the later layers extract higher level features like pieces of objects such as a dog's nose. \cite{olah2017feature}
+Each layer of the known image classifier  VGG-16 produces a feature map. The level of abstraction of the features increases the deeper in the network that they're produced. The early layers extract simple features like edges and shapes, while the later layers extract higher level features like a dog's nose. \cite{olah2017feature}
 
-The dispersion reduction attack aims to adjust the input image so that a feature map doesn't contain the features that are visibly present to a human in the image. This attack works by reducing the standard deviation of the target feature map. The source network is evaluated up until the layer that produces the target feature map, then the standard deviation of it is calculated and the derivative of this value is computed with respect to the input image. The sign of the resulting gradient is then added back to the input image to reduce the standard deviation of its feature map.
+The dispersion reduction attack aims to adjust the input image so that the feature map produced from it doesn't contain the features that are visibly present to a human in the image. This attack works by reducing the standard deviation of the target feature map. The source network is evaluated up until the layer that produces the target feature map, then the standard deviation of it is calculated and the derivative of this value is computed with respect to the input image. The sign of the resulting gradient is then added back to the input image to reduce the standard deviation of its feature map. The equation below describes how the adversarial adjustment is calculated. The input image is $x$, the learning rate is $\epsilon$ and $f_{\text{fm}}$ is VGG-16 evaluated up until the target feature map, fm.
 
 \begin{equation}
     \eta = - \epsilon * \text{sign}(\nabla_x \text{std}(f_{\text{fm}}(x)))
 \end{equation}
 
-Experiments were run to determine the effectiveness of this attack with hiding stop signs from object detectors. For this experiment the output of the 12th layer of VGG-16 was used as the feature map to reduce, which a tensor of size (256, 120, 120). The original was updated using the above equation for 25 and 50 iterations with $\epsilon = 2$ and the results are shown in figures \ref{fig:drskier}, \ref{fig:stop1} and \ref{fig:stop3}.
+Experiments were run to determine the effectiveness of this attack with hiding stop signs from object detectors. For this experiment the output of the 12th layer of VGG-16 was used as the feature map to reduce, which is a tensor of size (256, 120, 120). The original image was updated using the above equation for 25 and 50 iterations of gradient descent with $\epsilon = 2$ and the results are shown in figures \ref{fig:drskier}, \ref{fig:stop1} and \ref{fig:stop3}.
 
 
 \begin{figure}[h]
@@ -233,7 +231,7 @@ Experiments were run to determine the effectiveness of this attack with hiding s
 \label{fig:stop3}
 \end{figure}
 
-This attack seems to work for hiding objects in the image that are small or less pronounced like the skis in the first image. Even after just 25 iterations YOLOv3 was unable to detect the skis. However this attack had less of an effect on RCNN, with it only reducing the confidence scores of the person in the distance and the backpack. For hiding stop signs this attack didn't work at all. For both YOLOv3 and RCNN the attack hardly even changed the confidence scores for either stop sign image. This is likely due to the fact that stop signs have a unique shape, color and font that is unlike the other object classes so the model wouldn't be confusing it with anything else. In addition stop signs are designed to be easy to see and stand out a lot against the background unlike the skis in the first image.
+This attack seems to work for hiding objects in the image that are small or less pronounced like the skis in the first image. Even after just 25 iterations YOLOv3 was unable to detect the skis. However, this attack had less of an effect on RCNN with it only reducing the confidence scores of the person in the distance and the backpack. For hiding stop signs this attack didn't work at all. For both YOLOv3 and RCNN the attack hardly even changed the confidence scores for either stop sign image. This is likely due to the fact that stop signs have a unique shape, color and font that is unlike the other object classes so the model is unlikely to confuse it with anything else. In addition stop signs are designed to be easy to see and stand out a lot against the background unlike the skis in the first image.
 
 \clearpage
 \bibliographystyle{unsrt}

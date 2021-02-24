@@ -1,18 +1,5 @@
 \begin{thebibliography}{1}
 
-\bibitem{CGV-079}
-Joel Janai, Fatma Güney, Aseem Behl, and Andreas Geiger.
-\newblock Computer vision for autonomous vehicles: Problems, datasets and state
-  of the art.
-\newblock {\em Foundations and Trends® in Computer Graphics and Vision},
-  12(1–3):1--308, 2020.
-
-\bibitem{KIM2018845}
-Seung~Hyun Kim, Su~Chang Lim, and Do~Yeon Kim.
-\newblock Intelligent intrusion detection system featuring a virtual fence,
-  active intruder detection, classification, tracking, and action recognition.
-\newblock {\em Annals of Nuclear Energy}, 112:845--855, 2018.
-
 \bibitem{shorten2019survey}
 Connor Shorten and Taghi~M Khoshgoftaar.
 \newblock A survey on image data augmentation for deep learning.
@@ -30,6 +17,11 @@ Karen Simonyan and Andrew Zisserman.
 \bibitem{redmon2018yolov3}
 Joseph Redmon and Ali Farhadi.
 \newblock Yolov3: An incremental improvement, 2018.
+
+\bibitem{ren2016faster}
+Shaoqing Ren, Kaiming He, Ross Girshick, and Jian Sun.
+\newblock Faster r-cnn: Towards real-time object detection with region proposal
+  networks, 2016.
 
 \bibitem{cherepanova2021lowkey}
 Valeriia Cherepanova, Micah Goldblum, Harrison Foley, Shiyuan Duan, John
