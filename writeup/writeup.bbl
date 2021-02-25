@@ -18,6 +18,11 @@ Karen Simonyan and Andrew Zisserman.
 Joseph Redmon and Ali Farhadi.
 \newblock Yolov3: An incremental improvement, 2018.
 
+\bibitem{szegedy2014intriguing}
+Christian Szegedy, Wojciech Zaremba, Ilya Sutskever, Joan Bruna, Dumitru Erhan,
+  Ian Goodfellow, and Rob Fergus.
+\newblock Intriguing properties of neural networks, 2014.
+
 \bibitem{ren2016faster}
 Shaoqing Ren, Kaiming He, Ross Girshick, and Jian Sun.
 \newblock Faster r-cnn: Towards real-time object detection with region proposal

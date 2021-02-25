@@ -127,7 +127,7 @@ Where $x$ is the input image and $f_c$ is the confidence score of the target cla
 
 Adversarial examples were created for YOLOv3 \cite{redmon2018yolov3} by using a technique similar to \cite{goodfellow2015explaining}. The output of YOLOv3 is a matrix, where each row is a possible bounding box prediction. The format of each row is as follows: 4 floats describing the bounding box, 1 float indicating the confidence score of an object actually being inside the bounding box, and 80 floats which are the confidence scores of each of the label classes.
 
-The loss function made to create adversarial examples is the sum of all the bounding box confidence scores, and the confidence scores for the "stop sign" class. The loss function was regularized by adding the difference between the adversarial image and the original image so the final adversarial image will have minimal visible changes.
+The loss function made to create adversarial examples is the sum of all the bounding box confidence scores, and the confidence scores for the "stop sign" class. The loss function was regularized by adding the Euclidean distance between the adversarial image and the original image so the final adversarial image will have minimal visible changes, as described in \cite{szegedy2014intriguing}.
 
 \begin{equation}
     \eta = \epsilon * [\nabla_{x} (g_{\text{bbox}}(f(x))) + g_{\text{stop}}(f(x)))] + (x - \hat{x})^2
@@ -157,13 +157,13 @@ An experiment was run to determine the effectiveness of this attack across sever
 
 \section{Ensemble Adversarial Examples}
 
-The LowKey adversarial attack \cite{cherepanova2021lowkey} on AWS Rekognition was successful by creating adversarial images that are able to fool multiple models at once. The technique is the same as the one used for adversarial examples against YOLOv3 \cite{redmon2018yolov3} except RCNN \cite{ren2016faster} was added in as well. The loss function to minimize is the confidence score of the bounding boxes predicted by both models.
+The LowKey adversarial attack \cite{cherepanova2021lowkey} on AWS Rekognition was successful by creating adversarial images that are able to fool multiple models at once. The technique is the same as the one used for adversarial examples against YOLOv3 \cite{redmon2018yolov3} except RCNN \cite{ren2016faster} was added in as well. The loss function to minimize is the confidence score of the bounding boxes predicted by both models. This loss is regularized by the Euclidean distance between the adversarial image and the original image as was done for producing the adversarial images for YOLOv3.
 
 \begin{equation}
-    \eta = \epsilon (\nabla_x g(f_{\text{yolo}}(x)) + g(f_{\text{rcnn}}(x)))
+    \eta = \epsilon (\nabla_x ag(f_{\text{yolo}}(x)) + bg(f_{\text{rcnn}}(x) + c(x - \hat{x})^2))
 \end{equation}
 
-Where $\epsilon$ is the learning rate and $g$ is a function to extract the confidence scores of the bounding boxes from the output matrices of YOLOv3 and RCNN. $f_{\text{yolo}}$ is the YOLOv3 model and $f_{\text{rcnn}}$ is the Faster-RCNN model. This equation was run for 30 iterations of gradient descent to create adversarial images that can fool both networks. The results are visible in figure \ref{fig:yoloadversarial}, the confidence scores for the stop signs are listed beneath each of the images.
+Where $\epsilon$ is the learning rate and $g$ is a function to extract the confidence scores of the bounding boxes from the output matrices of YOLOv3 and RCNN. $f_{\text{yolo}}$ is the YOLOv3 model and $f_{\text{rcnn}}$ is the Faster-RCNN model. $a$, $b$, and $c$ are scaling constants to make sure the individual network losses are of the same magnitude. This equation was run for 30 iterations of gradient descent to create adversarial images that can fool both networks. The results are visible in figure \ref{fig:yoloadversarial}, the confidence scores for the stop signs are listed beneath each of the images.
 
 \begin{figure}[h]
 \centering
