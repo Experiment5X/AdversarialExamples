@@ -54,4 +54,15 @@ Chris Olah, Alexander Mordvintsev, and Ludwig Schubert.
 \newblock {\em Distill}, 2017.
 \newblock https://distill.pub/2017/feature-visualization.
 
+\bibitem{Liu2016}
+Wei Liu, Dragomir Anguelov, Dumitru Erhan, Christian Szegedy, Scott Reed,
+  Cheng-Yang Fu, and Alexander~C. Berg.
+\newblock Ssd: Single shot multibox detector.
+\newblock {\em Lecture Notes in Computer Science}, page 21–37, 2016.
+
+\bibitem{gittings2019robust}
+Thomas Gittings, Steve Schneider, and John Collomosse.
+\newblock Robust synthesis of adversarial visual examples using a deep image
+  prior, 2019.
+
 \end{thebibliography}

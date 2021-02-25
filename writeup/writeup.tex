@@ -254,6 +254,13 @@ The effectiveness of the ensemble adversarial attack was tested on AWS Rekogniti
 
 The adversarial attack seems promising when trying to hide the stop sign when it is smaller in the image, but more work will need to be done to make the attack more effective.
 
+\section{Future Work}
+It is clear that the attack needs to be improved in order to be effective against AWS Rekognition. There are several more techniques that can be attempted. One simple approach would be to add another model to the ensemble adversarial creation. SSD \cite{Liu2016} seems to be a good candidate, there are several open source implementations of it available on GitHub. Dispersion reduction could also be added into the ensemble, the idea being the overall attack could be more effective if several technique are combined together.
+
+Different types of transformations could be applied to the adversarial image during training in addition to the Gaussian blurring. Xie et al. in \cite{xie2019improving} apply random padding and resizing which could used.
+
+Another technique called deep image prior introduced in \cite{gittings2019robust} is a technique for created adversarial examples by using a GAN. While this approach is quite involved, the paper was published recently indicating that the attack may still work against AWS.
+
 \clearpage
 \bibliographystyle{unsrt}
 \bibliography{references}
