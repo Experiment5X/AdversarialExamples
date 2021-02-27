@@ -1,0 +1,3 @@
+[submodule "detection_experiments/SSD"]
+	path = detection_experiments/SSD
+	url = https://github.com/lufficc/SSD
