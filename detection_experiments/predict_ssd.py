@@ -14,7 +14,7 @@ from SSD.ssd.utils.checkpoint import CheckPointer
 score_threshold = 0.5
 
 
-if __name__ == '__main__':
+def setup_model():
     cfg.merge_from_file('./SSD/configs/vgg_ssd300_coco_trainval35k.yaml')
     cfg.freeze()
 
@@ -26,20 +26,10 @@ if __name__ == '__main__':
     checkpointer.load(ckpt, use_latest=ckpt is None)
     weight_file = ckpt if ckpt else checkpointer.get_checkpoint_file()
 
-    # images need to be ([1, 3, 300, 300])
-    ssd_transforms = build_transforms(cfg, False)
+    return model
 
-    image = Image.open(sys.argv[1]).convert('RGB')
-    image_np = np.array(image)
-    image_tensor = ssd_transforms(image_np)[0].unsqueeze(0)
 
-    predictions = model(image_tensor)[0]
-    boxes, labels, scores = (
-        predictions['boxes'],
-        predictions['labels'],
-        predictions['scores'],
-    )
-
+def process_predictions(boxes, labels, scores):
     labels_np = labels.detach().numpy()
     scores_np = scores.detach().numpy()
 
@@ -56,3 +46,22 @@ if __name__ == '__main__':
     if labels is None:
         print('Nothing!')
 
+
+if __name__ == '__main__':
+    model = setup_model()
+
+    # images need to be ([1, 3, 300, 300])
+    ssd_transforms = build_transforms(cfg, False)
+
+    image = Image.open(sys.argv[1]).convert('RGB')
+    image_np = np.array(image)
+    image_tensor = ssd_transforms(image_np)[0].unsqueeze(0)
+
+    predictions = model(image_tensor)[0]
+    boxes, labels, scores = (
+        predictions['boxes'],
+        predictions['labels'],
+        predictions['scores'],
+    )
+
+    process_predictions(boxes, labels, scores)
