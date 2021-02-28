@@ -14,6 +14,16 @@ from SSD.ssd.utils.checkpoint import CheckPointer
 score_threshold = 0.5
 
 
+def get_ssd_adversarial_loss(model_output, classes_to_hide=[1, 12]):
+    (class_predictions, _), predictions_all = model_output
+    predictions = predictions_all[0]
+
+    bbox_loss = torch.norm(predictions['scores'], 2)
+    class_loss = torch.sum(class_predictions[0][:, classes_to_hide])
+
+    return (bbox_loss + class_loss) / 50
+
+
 def setup_ssd_model():
     cfg.merge_from_file('./SSD/configs/vgg_ssd300_coco_trainval35k.yaml')
     cfg.freeze()
@@ -53,15 +63,21 @@ if __name__ == '__main__':
     # images need to be ([1, 3, 300, 300])
     ssd_transforms = build_transforms(cfg, False)
 
-    image = Image.open(sys.argv[1]).convert('RGB')
+    # image_path = sys.argv[1]
+    image_path = '/Users/adamspindler/Developer/MS-Project/test_images/stop.png'
+
+    image = Image.open(image_path).convert('RGB')
     image_np = np.array(image)
     image_tensor = ssd_transforms(image_np)[0].unsqueeze(0)
 
-    predictions = model(image_tensor)[0]
+    (class_scores_all, _), predictions_all = model(image_tensor)
+    predictions = predictions_all[0]
     boxes, labels, scores = (
         predictions['boxes'],
         predictions['labels'],
         predictions['scores'],
     )
+
+    class_scores = class_scores_all[0]
 
     process_ssd_predictions(boxes, labels, scores)

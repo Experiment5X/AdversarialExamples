@@ -11,7 +11,11 @@ from faster_rcnn import process_prediction
 from setup_yolo_model import setup_model, get_adversarial_loss, get_prediction_names
 from predict_rcnn import predict_image_tensor as predict_rcnn
 from predict_yolo import predict_image_tensor as predict_yolo
-from predict_ssd import setup_ssd_model, process_ssd_predictions
+from predict_ssd import (
+    setup_ssd_model,
+    process_ssd_predictions,
+    get_ssd_adversarial_loss,
+)
 
 image_path = (
     '/Users/adamspindler/Developer/MS-Project/test_images/stop2.png'  # sys.argv[1]
@@ -90,14 +94,13 @@ def create_adversarial(image_path):
         image_mean = torch.Tensor(cfg.INPUT.PIXEL_MEAN).unsqueeze(0)
         ssd_image = ssd_sized_image - image_mean[:, :, None, None]
 
-        ssd_predictions = ssd_model(ssd_sized_image)[0]
+        ssd_predictions = ssd_model(ssd_sized_image)
         process_ssd_predictions(
-            ssd_predictions['boxes'],
-            ssd_predictions['labels'],
-            ssd_predictions['scores'],
+            ssd_predictions[1][0]['boxes'],
+            ssd_predictions[1][0]['labels'],
+            ssd_predictions[1][0]['scores'],
         )
-
-        ssd_loss = torch.norm(ssd_predictions['scores'], 2)
+        ssd_loss = get_ssd_adversarial_loss(ssd_predictions)
 
         yolo_detection_names = get_prediction_names(yolo_detections, yolo_classes)
         print(f'YOLOv3 Detections: {yolo_detection_names}')
