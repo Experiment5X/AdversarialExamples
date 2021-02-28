@@ -5,7 +5,6 @@ from torchvision.transforms import ToTensor, ToPILImage
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from faster_rcnn import process_prediction
 
-image_path = sys.argv[1]
 to_tensor = ToTensor()
 to_pil_image = ToPILImage()
 
@@ -26,4 +25,6 @@ def predict(image_path):
 
 
 if __name__ == '__main__':
+    image_path = sys.argv[1]
+
     predict(image_path)

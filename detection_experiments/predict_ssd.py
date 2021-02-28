@@ -14,7 +14,7 @@ from SSD.ssd.utils.checkpoint import CheckPointer
 score_threshold = 0.5
 
 
-def setup_model():
+def setup_ssd_model():
     cfg.merge_from_file('./SSD/configs/vgg_ssd300_coco_trainval35k.yaml')
     cfg.freeze()
 
@@ -29,7 +29,7 @@ def setup_model():
     return model
 
 
-def process_predictions(boxes, labels, scores):
+def process_ssd_predictions(boxes, labels, scores):
     labels_np = labels.detach().numpy()
     scores_np = scores.detach().numpy()
 
@@ -48,7 +48,7 @@ def process_predictions(boxes, labels, scores):
 
 
 if __name__ == '__main__':
-    model = setup_model()
+    model = setup_ssd_model()
 
     # images need to be ([1, 3, 300, 300])
     ssd_transforms = build_transforms(cfg, False)
@@ -64,4 +64,4 @@ if __name__ == '__main__':
         predictions['scores'],
     )
 
-    process_predictions(boxes, labels, scores)
+    process_ssd_predictions(boxes, labels, scores)

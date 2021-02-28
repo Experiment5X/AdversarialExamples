@@ -4,14 +4,18 @@ import math
 import random
 import numpy as np
 from PIL import Image
+from SSD.ssd.config import cfg
 from torchvision.transforms import ToTensor, ToPILImage
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from faster_rcnn import process_prediction
 from setup_yolo_model import setup_model, get_adversarial_loss, get_prediction_names
 from predict_rcnn import predict_image_tensor as predict_rcnn
 from predict_yolo import predict_image_tensor as predict_yolo
+from predict_ssd import setup_ssd_model, process_ssd_predictions
 
-image_path = sys.argv[1]
+image_path = (
+    '/Users/adamspindler/Developer/MS-Project/test_images/stop2.png'  # sys.argv[1]
+)
 to_tensor = ToTensor()
 to_pil_image = ToPILImage()
 
@@ -68,6 +72,7 @@ def create_adversarial(image_path):
     rcnn_model.eval()
 
     yolo_model, yolo_classes = setup_model()
+    ssd_model = setup_ssd_model()
 
     for iteration in range(0, 30):
         image_tensor.requires_grad = True
@@ -79,13 +84,28 @@ def create_adversarial(image_path):
         yolo_detections = yolo_model.forward(image_tensor)
         yolo_loss = get_adversarial_loss(yolo_detections) / 200
 
+        ssd_sized_image = (
+            torch.nn.FractionalMaxPool2d(5, (300, 300))(image_tensor) * 255
+        )
+        image_mean = torch.Tensor(cfg.INPUT.PIXEL_MEAN).unsqueeze(0)
+        ssd_image = ssd_sized_image - image_mean[:, :, None, None]
+
+        ssd_predictions = ssd_model(ssd_sized_image)[0]
+        process_ssd_predictions(
+            ssd_predictions['boxes'],
+            ssd_predictions['labels'],
+            ssd_predictions['scores'],
+        )
+
+        ssd_loss = torch.norm(ssd_predictions['scores'], 2)
+
         yolo_detection_names = get_prediction_names(yolo_detections, yolo_classes)
         print(f'YOLOv3 Detections: {yolo_detection_names}')
 
         image_diff_regularization = (
             torch.norm(orginal_image_tensor - image_tensor, 2) / 25
         )
-        adversarial_loss = rcnn_loss + yolo_loss + image_diff_regularization
+        adversarial_loss = rcnn_loss + yolo_loss + ssd_loss + image_diff_regularization
         adversarial_loss.backward()
 
         image_tensor = image_tensor.data - 0.01 * torch.sign(image_tensor.grad.data)
@@ -98,7 +118,7 @@ def create_adversarial(image_path):
             print('\tAdding gassian blur')
 
         print(
-            f'[{iteration}] Adversarial loss total: {adversarial_loss:.5f}, RCNN Loss: {rcnn_loss:.5f}, YOLO Loss: {yolo_loss:.5f}, Image Diff: {image_diff_regularization:.5f}'
+            f'[{iteration}] Adversarial loss total: {adversarial_loss:.5f}, RCNN Loss: {rcnn_loss:.5f}, YOLO Loss: {yolo_loss:.5f}, SSD Loss: {ssd_loss:.5f}, Image Diff: {image_diff_regularization:.5f}'
         )
         print()
 

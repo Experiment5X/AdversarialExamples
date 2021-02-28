@@ -13,7 +13,6 @@ from torch.utils.data import DataLoader
 
 to_tensor = transforms.ToTensor()
 
-image_path = sys.argv[1]
 (model, classes) = setup_model()
 
 
@@ -44,4 +43,5 @@ def predict(image_path):
 
 
 if __name__ == '__main__':
+    image_path = sys.argv[1]
     predict(image_path)
