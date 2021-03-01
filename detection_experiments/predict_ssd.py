@@ -51,7 +51,7 @@ def process_ssd_predictions(boxes, labels, scores):
             class_index = int(labels_np[prediction_index])
             class_name = COCODataset.class_names[class_index]
 
-            print(f'{class_name} {confidence_score}')
+            print(f'\t{class_name} {confidence_score}')
 
     if labels is None:
         print('Nothing!')

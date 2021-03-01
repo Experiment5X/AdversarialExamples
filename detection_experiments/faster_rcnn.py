@@ -16,7 +16,8 @@ def process_prediction(prediction_infos, monkey_patched=False):
             labels = info['labels']
         for prediction_class, confidence_score in zip(labels, info['scores']):
             class_name = COCO_INSTANCE_CATEGORY_NAMES[prediction_class]
-            print(f'{class_name} - {confidence_score:.5f}')
+            if confidence_score > 0.5:
+                print(f'\t{class_name} - {confidence_score:.5f}')
 
         all_confidence_scores[image_index, :] = info['scores']
 
