@@ -14,6 +14,7 @@ def process_prediction(prediction_infos, monkey_patched=False):
             class_logits, labels = info['labels']
         else:
             labels = info['labels']
+            class_logits = None
         for prediction_class, confidence_score in zip(labels, info['scores']):
             class_name = COCO_INSTANCE_CATEGORY_NAMES[prediction_class]
             if confidence_score > 0.5:
@@ -24,7 +25,15 @@ def process_prediction(prediction_infos, monkey_patched=False):
         if len(info['labels']) == 0:
             print('No detections!')
 
-    return all_confidence_scores
+    classes_to_hide = [1, 13]
+    bbox_loss = torch.norm(all_confidence_scores, 2)
+
+    if class_logits is not None:
+        class_loss = torch.norm(class_logits[:, classes_to_hide], 2) / 200
+    else:
+        class_loss = 0
+
+    return bbox_loss + class_loss
 
 
 def create_new_postprocess_detections(orig_post_process):

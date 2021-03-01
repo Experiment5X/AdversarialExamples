@@ -76,12 +76,11 @@ def create_adversarial(image_path):
     ssd_model = setup_ssd_model()
 
     conv_sizes = [3, 5, 7]
-    for iteration in range(0, 30):
+    for iteration in range(0, 10):
         image_tensor.requires_grad = True
 
         rccn_detections = rcnn_model.forward(image_tensor)
-        all_confidence_scores_rcnn = process_prediction(rccn_detections, True)
-        rcnn_loss = torch.norm(all_confidence_scores_rcnn, 2)
+        rcnn_loss = process_prediction(rccn_detections, True)
 
         yolo_detections = yolo_model.forward(image_tensor)
         yolo_loss = get_adversarial_loss(yolo_detections) / 200
@@ -90,7 +89,6 @@ def create_adversarial(image_path):
         ssd_sized_image = (
             torch.nn.FractionalMaxPool2d(conv_size, (300, 300))(image_tensor) * 255
         )
-        ssd_sized_image = image_tensor
         image_mean = torch.Tensor(cfg.INPUT.PIXEL_MEAN).unsqueeze(0)
         ssd_image = ssd_sized_image - image_mean[:, :, None, None]
 
@@ -119,6 +117,10 @@ def create_adversarial(image_path):
         if iteration % 3 == 0 and iteration != 0 and iteration < 29:
             image_tensor = gaussian_blur(image_tensor)
             print('\tAdding gassian blur')
+
+        if iteration % 8 == 0 and iteration < 45:
+            image_tensor = image_tensor + torch.rand(image_tensor.shape) / 75
+            print('\tAdding random noise')
 
         print(
             f'[{iteration}] Adversarial loss total: {adversarial_loss:.5f}, RCNN Loss: {rcnn_loss:.5f}, YOLO Loss: {yolo_loss:.5f}, SSD Loss: {ssd_loss:.5f}, Image Diff: {image_diff_regularization:.5f}'
