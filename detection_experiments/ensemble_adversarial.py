@@ -6,8 +6,7 @@ import numpy as np
 from PIL import Image
 from SSD.ssd.config import cfg
 from torchvision.transforms import ToTensor, ToPILImage
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from faster_rcnn import process_prediction
+from faster_rcnn import process_prediction, setup_faster_rcnn_model
 from setup_yolo_model import setup_model, get_adversarial_loss, get_prediction_names
 from predict_rcnn import predict_image_tensor as predict_rcnn
 from predict_yolo import predict_image_tensor as predict_yolo
@@ -72,17 +71,15 @@ def create_adversarial(image_path):
     image_tensor = to_tensor(image).unsqueeze(0)
     orginal_image_tensor = to_tensor(image).unsqueeze(0)
 
-    rcnn_model = fasterrcnn_resnet50_fpn(pretrained=True, pretrained_backbone=True)
-    rcnn_model.eval()
-
     yolo_model, yolo_classes = setup_model()
+    rcnn_model = setup_faster_rcnn_model()
     ssd_model = setup_ssd_model()
 
     for iteration in range(0, 30):
         image_tensor.requires_grad = True
 
         rccn_detections = rcnn_model.forward(image_tensor)
-        all_confidence_scores_rcnn = process_prediction(rccn_detections)
+        all_confidence_scores_rcnn = process_prediction(rccn_detections, True)
         rcnn_loss = torch.norm(all_confidence_scores_rcnn, 2)
 
         yolo_detections = yolo_model.forward(image_tensor)
