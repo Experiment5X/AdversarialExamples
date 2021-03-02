@@ -86,11 +86,11 @@ def create_adversarial(image_path):
         yolo_loss = get_adversarial_loss(yolo_detections) / 200
 
         conv_size = conv_sizes[iteration % len(conv_sizes)]
-        ssd_sized_image = (
-            torch.nn.FractionalMaxPool2d(conv_size, (300, 300))(image_tensor) * 255
+        ssd_sized_image = torch.nn.FractionalMaxPool2d(conv_size, (300, 300))(
+            image_tensor
         )
         image_mean = torch.Tensor(cfg.INPUT.PIXEL_MEAN).unsqueeze(0)
-        ssd_image = ssd_sized_image - image_mean[:, :, None, None]
+        ssd_image = ssd_sized_image * 255 - image_mean[:, :, None, None]
 
         ssd_predictions = ssd_model(ssd_sized_image)
         process_ssd_predictions(
