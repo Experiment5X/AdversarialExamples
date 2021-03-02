@@ -1,7 +1,9 @@
+import os
 import sys
 import torch
 import torchvision.transforms as transforms
 import numpy as np
+from pathlib import Path
 from PIL import Image
 
 from labels import label_lookup
@@ -42,7 +44,7 @@ def test_image_loader(image):
     print_stats_summary('diff', image_tensor.numpy() - image_read_tensor.numpy())
 
 
-def get_adversarial_image(image, target_class=605):
+def get_adversarial_image(image_path, image, target_class=605):
     image_tensor = loader(image).float()
     orig_image_tensor = loader(image).float()
 
@@ -78,12 +80,16 @@ def get_adversarial_image(image, target_class=605):
             print('Stopping early, created adversarial image successfully')
             break
 
+    original_file_name = os.path.basename(image_path)
+    base_file_name = Path(original_file_name).stem
+    adversarial_file_name = f'./adversarial_{base_file_name}.png'
+
     to_image = transforms.ToPILImage()
     adversarial_image = to_image(image_tensor)
-    adversarial_image.save('./adversarial.png')
-    print('Wrote adversarial image to ./adversarial.png')
+    adversarial_image.save(adversarial_file_name)
+    print(f'Wrote adversarial image to {adversarial_file_name}')
 
-    adversarial_image2 = Image.open('./adversarial.png')
+    adversarial_image2 = Image.open(adversarial_file_name)
     adversarial_tensor2 = loader(adversarial_image2).float()
 
     return adversarial_image
@@ -102,4 +108,4 @@ if image is None:
 image_class = predict(image)
 print(f'Loaded image, class is "{image_class}"')
 
-adversarial_image = get_adversarial_image(image)
+adversarial_image = get_adversarial_image(image_path, image)

@@ -1,9 +1,11 @@
+import os
 import sys
 import torch
 import math
 import random
 import numpy as np
 from PIL import Image
+from pathlib import Path
 from SSD.ssd.config import cfg
 from torchvision.transforms import ToTensor, ToPILImage
 from faster_rcnn import process_prediction, setup_faster_rcnn_model
@@ -16,9 +18,7 @@ from predict_ssd import (
     get_ssd_adversarial_loss,
 )
 
-image_path = (
-    '/Users/adamspindler/Developer/MS-Project/test_images/stop2.png'  # sys.argv[1]
-)
+image_path = sys.argv[1]
 to_tensor = ToTensor()
 to_pil_image = ToPILImage()
 
@@ -76,7 +76,7 @@ def create_adversarial(image_path):
     ssd_model = setup_ssd_model()
 
     conv_sizes = [3, 5, 7]
-    for iteration in range(0, 50):
+    for iteration in range(0, 30):
         image_tensor.requires_grad = True
 
         rccn_detections = rcnn_model.forward(image_tensor)
@@ -131,11 +131,12 @@ def create_adversarial(image_path):
     return image_tensor
 
 
+original_file_name = os.path.basename(image_path)
+base_file_name = Path(original_file_name).stem
+adversarial_image_path = f'./ensemble_adversarial_{base_file_name}.png'
+
 adversarial_image_tensor = create_adversarial(image_path)
 adversarial_image = to_pil_image(adversarial_image_tensor.squeeze(0))
-
-image_id = random.randint(0, 1000)
-adversarial_image_path = f'./ensemble_adversarial-{image_id}.png'
 adversarial_image.save(adversarial_image_path)
 
 reloaded_image = Image.open(adversarial_image_path)
