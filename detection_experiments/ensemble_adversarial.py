@@ -76,7 +76,7 @@ def create_adversarial(image_path):
     ssd_model = setup_ssd_model()
 
     conv_sizes = [3, 5, 7]
-    for iteration in range(0, 10):
+    for iteration in range(0, 50):
         image_tensor.requires_grad = True
 
         rccn_detections = rcnn_model.forward(image_tensor)
@@ -85,14 +85,15 @@ def create_adversarial(image_path):
         yolo_detections = yolo_model.forward(image_tensor)
         yolo_loss = get_adversarial_loss(yolo_detections) / 200
 
-        conv_size = conv_sizes[iteration % len(conv_sizes)]
-        ssd_sized_image = torch.nn.FractionalMaxPool2d(conv_size, (300, 300))(
-            image_tensor
-        )
         image_mean = torch.Tensor(cfg.INPUT.PIXEL_MEAN).unsqueeze(0)
-        ssd_image = ssd_sized_image * 255 - image_mean[:, :, None, None]
+        conv_size = conv_sizes[iteration % len(conv_sizes)]
 
-        ssd_predictions = ssd_model(ssd_sized_image)
+        ssd_image = torch.zeros((1, 3, 512, 512))
+        ssd_image[:, :, : image_tensor.shape[-2], : image_tensor.shape[-1]] = (
+            image_tensor[:] * 255 - image_mean[:, :, None, None]
+        )
+
+        ssd_predictions = ssd_model(ssd_image)
         process_ssd_predictions(
             ssd_predictions[1][0]['boxes'],
             ssd_predictions[1][0]['labels'],
@@ -114,11 +115,11 @@ def create_adversarial(image_path):
             image_tensor.max() - image_tensor.min()
         )
 
-        if iteration % 3 == 0 and iteration != 0 and iteration < 29:
+        if iteration % 3 == 0 and iteration != 0 and iteration < 48:
             image_tensor = gaussian_blur(image_tensor)
             print('\tAdding gassian blur')
 
-        if iteration % 8 == 0 and iteration < 45:
+        if iteration % 8 == 0 and iteration < 47:
             image_tensor = image_tensor + torch.rand(image_tensor.shape) / 75
             print('\tAdding random noise')
 

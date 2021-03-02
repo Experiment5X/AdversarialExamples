@@ -25,13 +25,13 @@ def get_ssd_adversarial_loss(model_output, classes_to_hide=[1, 12]):
 
 
 def setup_ssd_model():
-    cfg.merge_from_file('./SSD/configs/vgg_ssd300_coco_trainval35k.yaml')
+    cfg.merge_from_file('./SSD/configs/vgg_ssd512_coco_trainval35k.yaml')
     cfg.freeze()
 
     model = build_detection_model(cfg)
     model.eval()
 
-    ckpt = 'https://github.com/lufficc/SSD/releases/download/1.2/vgg_ssd300_coco_trainval35k.pth'
+    ckpt = 'https://github.com/lufficc/SSD/releases/download/1.2/vgg_ssd512_coco_trainval35k.pth'
     checkpointer = CheckPointer(model, save_dir=cfg.OUTPUT_DIR)
     checkpointer.load(ckpt, use_latest=ckpt is None)
     weight_file = ckpt if ckpt else checkpointer.get_checkpoint_file()
@@ -63,12 +63,20 @@ if __name__ == '__main__':
     # images need to be ([1, 3, 300, 300])
     ssd_transforms = build_transforms(cfg, False)
 
-    # image_path = sys.argv[1]
-    image_path = '/Users/adamspindler/Developer/MS-Project/test_images/stop.png'
+    image_path = sys.argv[1]
 
     image = Image.open(image_path).convert('RGB')
     image_np = np.array(image)
-    image_tensor = ssd_transforms(image_np)[0].unsqueeze(0)
+
+    use_orig_image_size = True
+    if use_orig_image_size:
+        image_np = image_np.swapaxes(0, 2)
+        image_tensor = torch.zeros((1, 3, 512, 512))
+        image_tensor[0, :, : image_np.shape[-2], : image_np.shape[-1]] = torch.Tensor(
+            image_np
+        )
+    else:
+        image_tensor = ssd_transforms(image_np)[0].unsqueeze(0)
 
     (class_scores_all, _), predictions_all = model(image_tensor)
     predictions = predictions_all[0]
