@@ -28,4 +28,6 @@ def predict(image):
     prediction_tensor = model.forward(image_tensor)
     label_index = int(prediction_tensor.argmax().numpy())
 
-    return f'{label_lookup[label_index]} - {prediction_tensor[0][label_index]}'
+    maxed = torch.nn.Softmax(dim=1)(prediction_tensor)
+
+    return f'{label_lookup[label_index]} - {prediction_tensor[0][label_index]} - {maxed[0][label_index]}'
