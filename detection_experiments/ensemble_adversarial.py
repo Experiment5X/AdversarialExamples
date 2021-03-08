@@ -170,5 +170,5 @@ reloaded_image_tensor = to_tensor(reloaded_image).unsqueeze(0)
 print('Final adversarial image predictions...')
 predict_rcnn(reloaded_image_tensor)
 
-reloaded_image_tensor = reloaded_image_tensor .to(device)
+reloaded_image_tensor = reloaded_image_tensor.to(device)
 predict_yolo(reloaded_image_tensor)
