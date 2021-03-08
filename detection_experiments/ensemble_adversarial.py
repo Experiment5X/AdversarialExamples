@@ -66,32 +66,33 @@ def gaussian_blur(image):
     return gaussian_filter(image)
 
 
-def create_adversarial(image_path):
+def create_adversarial(image_path, shifts=[(0, 0), (0, 2), (2, 0), (2, 2)]):
     image = Image.open(image_path).convert('RGB').resize((416, 416))
     image_tensor = to_tensor(image).unsqueeze(0)
-    orginal_image_tensor = to_tensor(image).unsqueeze(0)
 
     yolo_model, yolo_classes = setup_model()
     rcnn_model = setup_faster_rcnn_model()
     ssd_model = setup_ssd_model()
 
-    conv_sizes = [3, 5, 7]
-    for iteration in range(0, 30):
-        image_tensor.requires_grad = True
+    def ensemble_iteration(current_image_tensor):
+        current_image_tensor = torch.clone(current_image_tensor)
+        current_image_tensor.requires_grad = True
 
-        rccn_detections = rcnn_model.forward(image_tensor)
+        orginal_image_tensor = torch.clone(current_image_tensor.data)
+
+        rccn_detections = rcnn_model.forward(current_image_tensor)
         rcnn_loss = process_prediction(rccn_detections, True)
 
-        yolo_detections = yolo_model.forward(image_tensor)
+        yolo_detections = yolo_model.forward(current_image_tensor)
         yolo_loss = get_adversarial_loss(yolo_detections) / 200
 
         image_mean = torch.Tensor(cfg.INPUT.PIXEL_MEAN).unsqueeze(0)
         conv_size = conv_sizes[iteration % len(conv_sizes)]
 
         ssd_image = torch.zeros((1, 3, 512, 512))
-        ssd_image[:, :, : image_tensor.shape[-2], : image_tensor.shape[-1]] = (
-            image_tensor[:] * 255 - image_mean[:, :, None, None]
-        )
+        ssd_image[
+            :, :, : current_image_tensor.shape[-2], : current_image_tensor.shape[-1]
+        ] = (current_image_tensor[:] * 255 - image_mean[:, :, None, None])
 
         ssd_predictions = ssd_model(ssd_image)
         process_ssd_predictions(
@@ -105,12 +106,22 @@ def create_adversarial(image_path):
         print(f'YOLOv3 Detections: {yolo_detection_names}')
 
         image_diff_regularization = (
-            torch.norm(orginal_image_tensor - image_tensor, 2) / 25
+            torch.norm(orginal_image_tensor - current_image_tensor, 2) / 25
         )
         adversarial_loss = rcnn_loss + yolo_loss + ssd_loss + image_diff_regularization
         adversarial_loss.backward()
 
-        image_tensor = image_tensor.data - 0.01 * torch.sign(image_tensor.grad.data)
+        print(
+            f'[{iteration}] Adversarial loss total: {adversarial_loss:.5f}, RCNN Loss: {rcnn_loss:.5f}, YOLO Loss: {yolo_loss:.5f}, SSD Loss: {ssd_loss:.5f}, Image Diff: {image_diff_regularization:.5f}'
+        )
+
+        return current_image_tensor.grad.data
+
+    conv_sizes = [3, 5, 7]
+    for iteration in range(0, 5):
+        image_tensor_gradient = ensemble_iteration(image_tensor)
+
+        image_tensor = image_tensor.data - 0.01 * torch.sign(image_tensor_gradient)
         image_tensor = (image_tensor - image_tensor.min()) / (
             image_tensor.max() - image_tensor.min()
         )
@@ -123,9 +134,6 @@ def create_adversarial(image_path):
             image_tensor = image_tensor + torch.rand(image_tensor.shape) / 75
             print('\tAdding random noise')
 
-        print(
-            f'[{iteration}] Adversarial loss total: {adversarial_loss:.5f}, RCNN Loss: {rcnn_loss:.5f}, YOLO Loss: {yolo_loss:.5f}, SSD Loss: {ssd_loss:.5f}, Image Diff: {image_diff_regularization:.5f}'
-        )
         print()
 
     return image_tensor

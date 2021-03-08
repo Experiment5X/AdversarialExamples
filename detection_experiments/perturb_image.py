@@ -86,5 +86,5 @@ if __name__ == '__main__':
         f'Perturbed the image with "{perturb_function_name}" and wrote it to '
         + out_image_path
     )
-    predict_yolo(out_image_path)
-    predict_rcnn(out_image_path)
+    # predict_yolo(out_image_path)
+    # predict_rcnn(out_image_path)
