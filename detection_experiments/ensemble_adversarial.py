@@ -69,9 +69,10 @@ def gaussian_blur(image, device):
     return gaussian_filter(image)
 
 
-def create_adversarial(image_path, shifts=[(0, 0), (2, 2), (4, 0), (0, 4)]):
+def create_adversarial(image_path, shifts=[(0, 0), (2, 2), (4, 0), (0, 4), (-4, -4), (-8, 0), (0, -8), (0, 8), (0, 8), (8, 8), (-8, -8)]):
     image = Image.open(image_path).convert('RGB').resize((416, 416))
     image_tensor = to_tensor(image).unsqueeze(0).to(device)
+    original_image_tensor = to_tensor(image).unsqueeze(0).to(device)
 
     yolo_model, yolo_classes = setup_model()
     yolo_model.to(device)
@@ -85,7 +86,7 @@ def create_adversarial(image_path, shifts=[(0, 0), (2, 2), (4, 0), (0, 4)]):
         current_image_tensor = affine(current_image_tensor, 0, shift, 1, [0])
         current_image_tensor.requires_grad = True
 
-        orginal_image_tensor = torch.clone(current_image_tensor.data)
+        original_image_tensor_shifted = affine(original_image_tensor, 0, shift, 1, [0])
 
         rccn_detections = rcnn_model.forward(current_image_tensor)
         rcnn_loss = process_prediction(rccn_detections, True)
@@ -114,7 +115,7 @@ def create_adversarial(image_path, shifts=[(0, 0), (2, 2), (4, 0), (0, 4)]):
         print(f'YOLOv3 Detections: {yolo_detection_names}')
 
         image_diff_regularization = (
-            torch.norm(orginal_image_tensor - current_image_tensor, 2) / 25
+            torch.norm(original_image_tensor_shifted - current_image_tensor, 2) / 25
         )
         adversarial_loss = rcnn_loss + yolo_loss + ssd_loss + image_diff_regularization
         adversarial_loss.backward()
