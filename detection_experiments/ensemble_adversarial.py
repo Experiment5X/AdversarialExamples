@@ -8,6 +8,7 @@ from PIL import Image
 from pathlib import Path
 from SSD.ssd.config import cfg
 from torchvision.transforms import ToTensor, ToPILImage
+from torchvision.transforms.functional import affine
 from faster_rcnn import process_prediction, setup_faster_rcnn_model
 from setup_yolo_model import setup_model, get_adversarial_loss, get_prediction_names
 from predict_rcnn import predict_image_tensor as predict_rcnn
@@ -74,8 +75,9 @@ def create_adversarial(image_path, shifts=[(0, 0), (0, 2), (2, 0), (2, 2)]):
     rcnn_model = setup_faster_rcnn_model()
     ssd_model = setup_ssd_model()
 
-    def ensemble_iteration(current_image_tensor):
+    def ensemble_iteration(current_image_tensor, shift):
         current_image_tensor = torch.clone(current_image_tensor)
+        current_image_tensor = affine(current_image_tensor, 0, shift, 1, [0])
         current_image_tensor.requires_grad = True
 
         orginal_image_tensor = torch.clone(current_image_tensor.data)
@@ -118,8 +120,17 @@ def create_adversarial(image_path, shifts=[(0, 0), (0, 2), (2, 0), (2, 2)]):
         return current_image_tensor.grad.data
 
     conv_sizes = [3, 5, 7]
-    for iteration in range(0, 5):
-        image_tensor_gradient = ensemble_iteration(image_tensor)
+    for iteration in range(0, 30):
+        total_gradient = torch.zeros(image_tensor.shape)
+        for shift in shifts:
+            print(f'[{iteration}] Using shift {shift}')
+            image_tensor_gradient = ensemble_iteration(image_tensor, shift)
+            image_tensor_gradient_shifted = affine(
+                image_tensor_gradient, 0, (-shift[0], -shift[1]), 1, [0]
+            )
+            total_gradient += image_tensor_gradient_shifted
+
+        total_gradient /= len(shifts)
 
         image_tensor = image_tensor.data - 0.01 * torch.sign(image_tensor_gradient)
         image_tensor = (image_tensor - image_tensor.min()) / (
