@@ -23,8 +23,10 @@ image_path = sys.argv[1]
 to_tensor = ToTensor()
 to_pil_image = ToPILImage()
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def gaussian_blur(image):
+
+def gaussian_blur(image, device):
     # Set these to whatever you want for your gaussian filter
     kernel_size = 3
     sigma = 0.25
@@ -44,7 +46,7 @@ def gaussian_blur(image):
     # variables (in this case called x and y)
     gaussian_kernel = (1.0 / (2.0 * math.pi * variance)) * torch.exp(
         -torch.sum((xy_grid - mean) ** 2.0, dim=-1) / (2 * variance)
-    )
+    ).to(device)
     # Make sure sum of values in gaussian kernel equals 1.
     gaussian_kernel = gaussian_kernel / torch.sum(gaussian_kernel)
 
@@ -67,16 +69,19 @@ def gaussian_blur(image):
     return gaussian_filter(image)
 
 
-def create_adversarial(image_path, shifts=[(0, 0), (0, 2), (2, 0), (2, 2)]):
+def create_adversarial(image_path, shifts=[(0, 0)]):
     image = Image.open(image_path).convert('RGB').resize((416, 416))
-    image_tensor = to_tensor(image).unsqueeze(0)
+    image_tensor = to_tensor(image).unsqueeze(0).to(device)
 
     yolo_model, yolo_classes = setup_model()
+    yolo_model.to(device)
     rcnn_model = setup_faster_rcnn_model()
+    rcnn_model.to(device)
     ssd_model = setup_ssd_model()
+    ssd_model.to(device)
 
     def ensemble_iteration(current_image_tensor, shift):
-        current_image_tensor = torch.clone(current_image_tensor)
+        current_image_tensor = torch.clone(current_image_tensor).to(device)
         current_image_tensor = affine(current_image_tensor, 0, shift, 1, [0])
         current_image_tensor.requires_grad = True
 
@@ -88,21 +93,22 @@ def create_adversarial(image_path, shifts=[(0, 0), (0, 2), (2, 0), (2, 2)]):
         yolo_detections = yolo_model.forward(current_image_tensor)
         yolo_loss = get_adversarial_loss(yolo_detections) / 200
 
-        image_mean = torch.Tensor(cfg.INPUT.PIXEL_MEAN).unsqueeze(0)
+        image_mean = torch.Tensor(cfg.INPUT.PIXEL_MEAN).unsqueeze(0).to(device)
         conv_size = conv_sizes[iteration % len(conv_sizes)]
 
-        ssd_image = torch.zeros((1, 3, 512, 512))
-        ssd_image[
-            :, :, : current_image_tensor.shape[-2], : current_image_tensor.shape[-1]
-        ] = (current_image_tensor[:] * 255 - image_mean[:, :, None, None])
+        # ssd_image = torch.zeros((1, 3, 512, 512)).to(device)
+        # ssd_image[
+        #     :, :, : current_image_tensor.shape[-2], : current_image_tensor.shape[-1]
+        # ] = (current_image_tensor[:] * 255 - image_mean[:, :, None, None])
 
-        ssd_predictions = ssd_model(ssd_image)
-        process_ssd_predictions(
-            ssd_predictions[1][0]['boxes'],
-            ssd_predictions[1][0]['labels'],
-            ssd_predictions[1][0]['scores'],
-        )
-        ssd_loss = get_ssd_adversarial_loss(ssd_predictions)
+        # ssd_predictions = ssd_model(ssd_image)
+        # process_ssd_predictions(
+        #     ssd_predictions[1][0]['boxes'],
+        #     ssd_predictions[1][0]['labels'],
+        #     ssd_predictions[1][0]['scores'],
+        # )
+        # ssd_loss = get_ssd_adversarial_loss(ssd_predictions)
+        ssd_loss = 0
 
         yolo_detection_names = get_prediction_names(yolo_detections, yolo_classes)
         print(f'YOLOv3 Detections: {yolo_detection_names}')
@@ -121,7 +127,7 @@ def create_adversarial(image_path, shifts=[(0, 0), (0, 2), (2, 0), (2, 2)]):
 
     conv_sizes = [3, 5, 7]
     for iteration in range(0, 30):
-        total_gradient = torch.zeros(image_tensor.shape)
+        total_gradient = torch.zeros(image_tensor.shape).to(device)
         for shift in shifts:
             print(f'[{iteration}] Using shift {shift}')
             image_tensor_gradient = ensemble_iteration(image_tensor, shift)
@@ -138,11 +144,11 @@ def create_adversarial(image_path, shifts=[(0, 0), (0, 2), (2, 0), (2, 2)]):
         )
 
         if iteration % 3 == 0 and iteration != 0 and iteration < 48:
-            image_tensor = gaussian_blur(image_tensor)
+            image_tensor = gaussian_blur(image_tensor, device)
             print('\tAdding gassian blur')
 
         if iteration % 8 == 0 and iteration < 47:
-            image_tensor = image_tensor + torch.rand(image_tensor.shape) / 75
+            image_tensor = image_tensor + torch.rand(image_tensor.shape).to(device) / 75
             print('\tAdding random noise')
 
         print()
@@ -163,4 +169,6 @@ reloaded_image_tensor = to_tensor(reloaded_image).unsqueeze(0)
 
 print('Final adversarial image predictions...')
 predict_rcnn(reloaded_image_tensor)
+
+reloaded_image_tensor = reloaded_image_tensor .to(device)
 predict_yolo(reloaded_image_tensor)

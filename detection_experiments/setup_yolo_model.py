@@ -9,13 +9,15 @@ from torch.utils.data import DataLoader
 
 
 def get_adversarial_loss(detections, class_to_hide=12):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # Get the confidences in the bboxes existing
-    bbox_confidence_mask = torch.zeros(detections.shape)
+    bbox_confidence_mask = torch.zeros(detections.shape).to(device)
     bbox_confidence_mask[:, :, 4] = 1
     bbox_confidences = detections * bbox_confidence_mask
 
     # Get the confidences in stop signs existing
-    stop_sign_confidence_mask = torch.zeros(detections.shape)
+    stop_sign_confidence_mask = torch.zeros(detections.shape).to(device)
     stop_sign_confidence_mask[:, :, 4 + class_to_hide] = 1
     stop_sign_confidences = detections * stop_sign_confidence_mask
 

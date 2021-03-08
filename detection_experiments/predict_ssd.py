@@ -40,8 +40,8 @@ def setup_ssd_model():
 
 
 def process_ssd_predictions(boxes, labels, scores):
-    labels_np = labels.detach().numpy()
-    scores_np = scores.detach().numpy()
+    labels_np = labels.detach()
+    scores_np = scores.detach()
 
     print('SSD Predictions: ')
     for prediction_index in range(0, labels_np.shape[0]):
