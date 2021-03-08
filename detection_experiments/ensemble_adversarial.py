@@ -97,19 +97,18 @@ def create_adversarial(image_path, shifts=[(0, 0), (2, 2), (4, 0), (0, 4), (-4, 
         image_mean = torch.Tensor(cfg.INPUT.PIXEL_MEAN).unsqueeze(0).to(device)
         conv_size = conv_sizes[iteration % len(conv_sizes)]
 
-        # ssd_image = torch.zeros((1, 3, 512, 512)).to(device)
-        # ssd_image[
-        #     :, :, : current_image_tensor.shape[-2], : current_image_tensor.shape[-1]
-        # ] = (current_image_tensor[:] * 255 - image_mean[:, :, None, None])
+        ssd_image = torch.zeros((1, 3, 512, 512)).to(device)
+        ssd_image[
+            :, :, : current_image_tensor.shape[-2], : current_image_tensor.shape[-1]
+        ] = (current_image_tensor[:] * 255 - image_mean[:, :, None, None])
 
-        # ssd_predictions = ssd_model(ssd_image)
-        # process_ssd_predictions(
-        #     ssd_predictions[1][0]['boxes'],
-        #     ssd_predictions[1][0]['labels'],
-        #     ssd_predictions[1][0]['scores'],
-        # )
-        # ssd_loss = get_ssd_adversarial_loss(ssd_predictions)
-        ssd_loss = 0
+        ssd_predictions = ssd_model(ssd_image)
+        process_ssd_predictions(
+            ssd_predictions[1][0]['boxes'],
+            ssd_predictions[1][0]['labels'],
+            ssd_predictions[1][0]['scores'],
+        )
+        ssd_loss = get_ssd_adversarial_loss(ssd_predictions)
 
         yolo_detection_names = get_prediction_names(yolo_detections, yolo_classes)
         print(f'YOLOv3 Detections: {yolo_detection_names}')

@@ -287,6 +287,9 @@ class Darknet(nn.Module):
         ):
             if module_def["type"] in ["convolutional", "upsample", "maxpool"]:
                 y_pred = module(x)
+
+                if module_def["type"] == "convolutional":
+                    module[0].weight.requires_grad = False
                 # fake_loss = torch.sum(y_pred)
                 # fake_loss.backward()
 
