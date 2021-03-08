@@ -69,7 +69,7 @@ def gaussian_blur(image, device):
     return gaussian_filter(image)
 
 
-def create_adversarial(image_path, shifts=[(0, 0)]):
+def create_adversarial(image_path, shifts=[(0, 0), (2, 2), (4, 0), (0, 4)]):
     image = Image.open(image_path).convert('RGB').resize((416, 416))
     image_tensor = to_tensor(image).unsqueeze(0).to(device)
 
@@ -126,7 +126,7 @@ def create_adversarial(image_path, shifts=[(0, 0)]):
         return current_image_tensor.grad.data
 
     conv_sizes = [3, 5, 7]
-    for iteration in range(0, 30):
+    for iteration in range(0, 25):
         total_gradient = torch.zeros(image_tensor.shape).to(device)
         for shift in shifts:
             print(f'[{iteration}] Using shift {shift}')
@@ -138,16 +138,16 @@ def create_adversarial(image_path, shifts=[(0, 0)]):
 
         total_gradient /= len(shifts)
 
-        image_tensor = image_tensor.data - 0.01 * torch.sign(image_tensor_gradient)
+        image_tensor = image_tensor.data - 0.01 * torch.sign(total_gradient)
         image_tensor = (image_tensor - image_tensor.min()) / (
             image_tensor.max() - image_tensor.min()
         )
 
-        if iteration % 3 == 0 and iteration != 0 and iteration < 48:
+        if iteration % 10 == 1 and iteration != 0 and iteration < 48:
             image_tensor = gaussian_blur(image_tensor, device)
             print('\tAdding gassian blur')
 
-        if iteration % 8 == 0 and iteration < 47:
+        if iteration % 10 == 9 and iteration < 47:
             image_tensor = image_tensor + torch.rand(image_tensor.shape).to(device) / 75
             print('\tAdding random noise')
 
