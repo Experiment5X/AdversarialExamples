@@ -92,7 +92,7 @@ Overall, this result is interesting though because there is a non-negligible dec
 
 \section{Future Work}
 
-The adversarial images created for this experiment have a moderate level of distortion applied. The images have clearly been altered, but they are easily detectable as a stop sign when looking at the images as a human. Each of these images were run for 30 iterations of adversarial updates which may not be enough to fool AWS. More significant alterations may be required to create transferable adversarial images. The computation time is the real limitation here. It takes about 8 minutes to create a single adversarial image using translation invariance with 30 total iterations even on a machine with a decent GPU. Which makes quick experimentation difficult.
+The adversarial images created for this experiment have a moderate level of distortion applied. The images have clearly been altered, but they are easily detectable as a stop sign when looking at the images as a human. Each of these images were run for 30 iterations of adversarial updates which may not be enough to fool AWS. More significant alterations may be required to create transferable adversarial images.
 
 In short, the things I can try next are: increase the number of iterations, increase the number of translations, and randomize which translations are used each iteration. I can also try limiting the image modifications to the inside of the bounding boxes of the stop signs.
 
